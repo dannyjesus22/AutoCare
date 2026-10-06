@@ -12,16 +12,26 @@ import com.example.autocare.screens.PantallaHistorial
 import com.example.autocare.screens.PantallaKilometraje
 import com.example.autocare.screens.PantallaMantenimiento
 import com.example.autocare.screens.RegisterScreen
+import com.example.autocare.screens.SplashScreen
 import com.example.autocare.screens.VehicleRegisterScreen
 
 @Composable
 fun NavegacionApp() {
 
+    // La aplicación comienza mostrando el Splash
     var pantallaActual by remember {
-        mutableStateOf("login")
+        mutableStateOf("splash")
     }
 
     when (pantallaActual) {
+
+        "splash" -> {
+            SplashScreen(
+                onIrLogin = {
+                    pantallaActual = "login"
+                }
+            )
+        }
 
         "login" -> {
             LoginScreen(
