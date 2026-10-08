@@ -1,3 +1,4 @@
+
 package com.example.autocare.screens
 
 import androidx.compose.foundation.layout.Arrangement
@@ -8,8 +9,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
@@ -22,7 +24,6 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun HomeScreen(
-    onIrVehiculo: () -> Unit,
     onIrKilometraje: () -> Unit,
     onIrMantenimiento: () -> Unit,
     onIrHistorial: () -> Unit,
@@ -32,6 +33,7 @@ fun HomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp)
     ) {
 
@@ -48,10 +50,9 @@ fun HomeScreen(
             color = Color.Gray
         )
 
-        Spacer(
-            modifier = Modifier.height(20.dp)
-        )
+        Spacer(modifier = Modifier.height(20.dp))
 
+        // Tarjeta del vehículo (datos de ejemplo por ahora)
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
@@ -72,9 +73,7 @@ fun HomeScreen(
 
                 Text("Evolution 2007")
 
-                Spacer(
-                    modifier = Modifier.height(5.dp)
-                )
+                Spacer(modifier = Modifier.height(5.dp))
 
                 Text(
                     text = "185.420 km",
@@ -88,25 +87,7 @@ fun HomeScreen(
             }
         }
 
-        Spacer(
-            modifier = Modifier.height(10.dp)
-        )
-
-        Button(
-            onClick = {
-                onIrVehiculo()
-            },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF0D47A1)
-            )
-        ) {
-            Text("Registrar vehículo")
-        }
-
-        Spacer(
-            modifier = Modifier.height(20.dp)
-        )
+        Spacer(modifier = Modifier.height(25.dp))
 
         Text(
             text = "Próximos mantenimientos",
@@ -114,9 +95,7 @@ fun HomeScreen(
             fontWeight = FontWeight.Bold
         )
 
-        Spacer(
-            modifier = Modifier.height(10.dp)
-        )
+        Spacer(modifier = Modifier.height(10.dp))
 
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -138,9 +117,7 @@ fun HomeScreen(
             }
         }
 
-        Spacer(
-            modifier = Modifier.height(10.dp)
-        )
+        Spacer(modifier = Modifier.height(10.dp))
 
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -162,9 +139,7 @@ fun HomeScreen(
             }
         }
 
-        Spacer(
-            modifier = Modifier.height(20.dp)
-        )
+        Spacer(modifier = Modifier.height(20.dp))
 
         Text(
             text = "Acciones rápidas",
@@ -172,9 +147,7 @@ fun HomeScreen(
             fontWeight = FontWeight.Bold
         )
 
-        Spacer(
-            modifier = Modifier.height(10.dp)
-        )
+        Spacer(modifier = Modifier.height(10.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -182,27 +155,21 @@ fun HomeScreen(
         ) {
 
             Button(
-                onClick = {
-                    onIrKilometraje()
-                },
+                onClick = onIrKilometraje,
                 modifier = Modifier.weight(1f)
             ) {
                 Text("Kilometraje")
             }
 
             Button(
-                onClick = {
-                    onIrMantenimiento()
-                },
+                onClick = onIrMantenimiento,
                 modifier = Modifier.weight(1f)
             ) {
                 Text("Mantenimiento")
             }
         }
 
-        Spacer(
-            modifier = Modifier.height(10.dp)
-        )
+        Spacer(modifier = Modifier.height(10.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -210,18 +177,14 @@ fun HomeScreen(
         ) {
 
             Button(
-                onClick = {
-                    onIrHistorial()
-                },
+                onClick = onIrHistorial,
                 modifier = Modifier.weight(1f)
             ) {
                 Text("Historial")
             }
 
             Button(
-                onClick = {
-                    onIrConfiguracion()
-                },
+                onClick = onIrConfiguracion,
                 modifier = Modifier.weight(1f)
             ) {
                 Text("Configuración")
