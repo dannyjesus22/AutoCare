@@ -1,10 +1,10 @@
-
 package com.example.autocare.screens
 
+import android.widget.Toast
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,6 +18,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -29,10 +30,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.autocare.data.ConfiguracionDataStore
 import com.example.autocare.data.Vehiculo
+import com.example.autocare.viewmodel.ConfiguracionViewModel
+import com.example.autocare.viewmodel.ConfiguracionViewModelFactory
 import com.example.autocare.viewmodel.VehiculoViewModel
 
 @Composable
@@ -42,17 +48,18 @@ fun PantallaConfiguracion(
     onEditarVehiculo: (Vehiculo) -> Unit,
     vehiculoViewModel: VehiculoViewModel
 ) {
+    val context = LocalContext.current
 
-    // Preferencias que Maykol conectará posteriormente con DataStore
-    var notificacionesActivas by remember {
-        mutableStateOf(true)
-    }
+    // Inicializar DataStore y su ViewModel
+    val dataStore = remember { ConfiguracionDataStore(context) }
+    val configFactory = remember { ConfiguracionViewModelFactory(dataStore) }
+    val configViewModel: ConfiguracionViewModel = viewModel(factory = configFactory)
 
-    var recordatoriosActivos by remember {
-        mutableStateOf(true)
-    }
+    // Escuchar el estado de las preferencias desde DataStore
+    val notificacionesActivas by configViewModel.notificacionesActivadas.collectAsState()
+    val recordatoriosActivos by configViewModel.recordatoriosActivados.collectAsState()
 
-    // Lista real de vehículos registrados en Room
+    // Lista real de vehículos registrados en Room (Danny)
     val vehiculos by vehiculoViewModel.vehiculos.collectAsState()
 
     // Vehículo pendiente de eliminación
@@ -91,7 +98,8 @@ fun PantallaConfiguracion(
         Text(
             text = "Mis vehículos",
             fontSize = 20.sp,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF0D47A1)
         )
 
         Spacer(modifier = Modifier.height(10.dp))
@@ -192,9 +200,10 @@ fun PantallaConfiguracion(
         Spacer(modifier = Modifier.height(25.dp))
 
         Text(
-            text = "Notificaciones",
+            text = "Notificaciones y Preferencias",
             fontSize = 20.sp,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF0D47A1)
         )
 
         Spacer(modifier = Modifier.height(10.dp))
@@ -211,9 +220,12 @@ fun PantallaConfiguracion(
 
             Switch(
                 checked = notificacionesActivas,
-                onCheckedChange = {
-                    notificacionesActivas = it
-                }
+                onCheckedChange = { activado ->
+                    configViewModel.cambiarNotificaciones(activado)
+                },
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color(0xFF0D47A1)
+                )
             )
         }
 
@@ -231,9 +243,12 @@ fun PantallaConfiguracion(
 
             Switch(
                 checked = recordatoriosActivos,
-                onCheckedChange = {
-                    recordatoriosActivos = it
-                }
+                onCheckedChange = { activado ->
+                    configViewModel.cambiarRecordatorios(activado)
+                },
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color(0xFF0D47A1)
+                )
             )
         }
 
@@ -241,7 +256,7 @@ fun PantallaConfiguracion(
 
         Button(
             onClick = {
-                // Maykol implementará el guardado con DataStore
+                Toast.makeText(context, "Configuración guardada en DataStore", Toast.LENGTH_SHORT).show()
             },
             modifier = Modifier
                 .fillMaxWidth()
