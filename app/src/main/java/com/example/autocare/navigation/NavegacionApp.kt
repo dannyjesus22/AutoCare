@@ -2,6 +2,7 @@
 package com.example.autocare.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,7 +27,7 @@ import com.example.autocare.viewmodel.VehiculoViewModelFactory
 @Composable
 fun NavegacionApp() {
 
-    // Pantalla inicial de AutoCare
+    // Controla qué pantalla se muestra
     var pantallaActual by remember {
         mutableStateOf("splash")
     }
@@ -79,7 +80,6 @@ fun NavegacionApp() {
             )
         }
 
-
         "inicio" -> {
             HomeScreen(
                 onIrKilometraje = {
@@ -97,8 +97,6 @@ fun NavegacionApp() {
             )
         }
 
-
-
         "vehiculo" -> {
             VehicleRegisterScreen(
                 onVolver = {
@@ -110,11 +108,24 @@ fun NavegacionApp() {
             )
         }
 
-
         "kilometraje" -> {
+
+            // Obtener los vehículos reales desde Room
+            val vehiculos by aplicacion.vehiculoRepository
+                .todosLosVehiculos
+                .collectAsState(initial = emptyList())
+
             PantallaKilometraje(
                 onVolver = {
                     pantallaActual = "inicio"
+                },
+
+                // Enviar los vehículos a la pantalla
+                vehiculos = vehiculos,
+
+                // El guardado se conectará después
+                onGuardarKilometraje = { _, _ ->
+                    // Pendiente: conectar con Room
                 }
             )
         }
