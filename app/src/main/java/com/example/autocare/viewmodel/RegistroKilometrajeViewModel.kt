@@ -19,19 +19,25 @@ class RegistroKilometrajeViewModel(
         return repository.obtenerRegistrosPorVehiculo(vehiculoId)
     }
 
-    // Guardar una nueva lectura del odómetro
+    // Guardar el nuevo kilometraje total del vehículo
     fun guardarKilometraje(
         vehiculoId: Int,
         kilometrajeActual: Int
     ) {
         viewModelScope.launch {
-
-            val nuevoRegistro = RegistroKilometraje(
-                vehiculoId = vehiculoId,
-                kilometrajeActual = kilometrajeActual
-            )
-
-            repository.insertarRegistro(nuevoRegistro)
+            try {
+                repository.guardarKilometraje(
+                    vehiculoId = vehiculoId,
+                    kilometrajeActual = kilometrajeActual
+                )
+            } catch (e: Exception) {
+                // Temporalmente mostramos el error en Logcat
+                android.util.Log.e(
+                    "AutoCareKilometraje",
+                    "Error al guardar kilometraje",
+                    e
+                )
+            }
         }
     }
 

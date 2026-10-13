@@ -3,8 +3,12 @@ package com.example.autocare
 
 import android.app.Application
 import androidx.room.Room
+
 import com.example.autocare.data.BaseDatosAutoCare
+import com.example.autocare.data.MIGRACION_1_2
 import com.example.autocare.data.VehiculoRepository
+import com.example.autocare.data.RegistroKilometrajeRepository
+import com.example.autocare.data.MantenimientoRepository
 
 class AplicacionAutoCare : Application() {
 
@@ -14,11 +18,32 @@ class AplicacionAutoCare : Application() {
             applicationContext,
             BaseDatosAutoCare::class.java,
             "autocare_database"
-        ).build()
+        )
+            // Migrar de versión 1 a 2 sin borrar los datos
+            .addMigrations(MIGRACION_1_2)
+            .build()
     }
 
-    // Conectar el Repository con el DAO
+    // Repository de vehículos
     val vehiculoRepository by lazy {
-        VehiculoRepository(baseDatos.vehiculoDao())
+        VehiculoRepository(
+            baseDatos.vehiculoDao()
+        )
+    }
+
+    // Repository de kilometraje
+    val registroKilometrajeRepository by lazy {
+        RegistroKilometrajeRepository(
+            registroKilometrajeDao = baseDatos.registroKilometrajeDao(),
+            vehiculoDao = baseDatos.vehiculoDao(),
+            baseDatos = baseDatos
+        )
+    }
+
+    // Repository de mantenimiento
+    val mantenimientoRepository by lazy {
+        MantenimientoRepository(
+            baseDatos.mantenimientoDao()
+        )
     }
 }

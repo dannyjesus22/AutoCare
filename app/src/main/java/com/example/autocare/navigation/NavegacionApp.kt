@@ -23,6 +23,8 @@ import com.example.autocare.screens.SplashScreen
 import com.example.autocare.screens.VehicleRegisterScreen
 import com.example.autocare.viewmodel.VehiculoViewModel
 import com.example.autocare.viewmodel.VehiculoViewModelFactory
+import com.example.autocare.viewmodel.RegistroKilometrajeViewModel
+import com.example.autocare.viewmodel.RegistroKilometrajeViewModelFactory
 
 @Composable
 fun NavegacionApp() {
@@ -50,6 +52,19 @@ fun NavegacionApp() {
     val vehiculoViewModel: VehiculoViewModel = viewModel(
         factory = factory
     )
+
+
+    // Crear el ViewModel del kilometraje
+    val kilometrajeFactory = remember(aplicacion) {
+        RegistroKilometrajeViewModelFactory(
+            aplicacion.registroKilometrajeRepository
+        )
+    }
+
+    val kilometrajeViewModel: RegistroKilometrajeViewModel = viewModel(
+        factory = kilometrajeFactory
+    )
+
 
     when (pantallaActual) {
 
@@ -123,10 +138,15 @@ fun NavegacionApp() {
                 // Enviar los vehículos a la pantalla
                 vehiculos = vehiculos,
 
-                // El guardado se conectará después
-                onGuardarKilometraje = { _, _ ->
-                    // Pendiente: conectar con Room
+
+                // Guardar el nuevo kilometraje total en Room
+                onGuardarKilometraje = { vehiculoId, kilometrajeActual ->
+                    kilometrajeViewModel.guardarKilometraje(
+                        vehiculoId = vehiculoId,
+                        kilometrajeActual = kilometrajeActual
+                    )
                 }
+
             )
         }
 

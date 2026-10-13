@@ -23,10 +23,17 @@ fun PantallaKilometraje(
     onGuardarKilometraje: (Int, Int) -> Unit = { _, _ -> }
 ) {
 
-    // Vehículo seleccionado por el usuario
-    var vehiculoSeleccionado by remember {
-        mutableStateOf<Vehiculo?>(null)
+
+    // Guardamos únicamente el ID del vehículo seleccionado
+    var vehiculoSeleccionadoId by remember {
+        mutableStateOf<Int?>(null)
     }
+
+    // Buscamos el vehículo actualizado en la lista de Room
+    val vehiculoSeleccionado = vehiculos.find {
+        it.id == vehiculoSeleccionadoId
+    }
+
 
     // Kilómetros recorridos durante el día
     var kilometrosRecorridos by remember {
@@ -43,12 +50,20 @@ fun PantallaKilometraje(
         mutableStateOf("")
     }
 
-    // Si solo existe un vehículo, lo seleccionamos automáticamente
+
     LaunchedEffect(vehiculos) {
-        if (vehiculoSeleccionado == null && vehiculos.size == 1) {
-            vehiculoSeleccionado = vehiculos.first()
+        if (vehiculos.size == 1 && vehiculoSeleccionadoId == null) {
+            vehiculoSeleccionadoId = vehiculos.first().id
+        }
+
+        if (
+            vehiculoSeleccionadoId != null &&
+            vehiculos.none { it.id == vehiculoSeleccionadoId }
+        ) {
+            vehiculoSeleccionadoId = null
         }
     }
+
 
     val kilometrosNuevos = kilometrosRecorridos.toIntOrNull()
 
@@ -142,7 +157,7 @@ fun PantallaKilometraje(
                             )
                         },
                         onClick = {
-                            vehiculoSeleccionado = vehiculo
+                            vehiculoSeleccionadoId = vehiculo.id
                             kilometrosRecorridos = ""
                             mensajeError = ""
                             menuExpandido = false
