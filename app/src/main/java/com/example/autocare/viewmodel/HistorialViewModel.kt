@@ -4,7 +4,7 @@ package com.example.autocare.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.autocare.data.RegistroKilometraje
-import com.example.autocare.data.RegistroKilometrajeRepository
+import com.example.autocare.data.IRegistroKilometrajeRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,7 +29,7 @@ sealed interface HistorialUiState {
 }
 
 class HistorialViewModel(
-    private val repository: RegistroKilometrajeRepository
+    private val repository: IRegistroKilometrajeRepository
 ) : ViewModel() {
 
     // Estado interno que el ViewModel puede modificar.
