@@ -95,7 +95,16 @@ fun NavegacionApp() {
             )
         }
 
+
         "inicio" -> {
+
+            // Obtenemos los vehículos registrados en Room.
+            // collectAsState permite actualizar la pantalla
+            // automáticamente cuando cambian los datos.
+            val vehiculos by aplicacion.vehiculoRepository
+                .todosLosVehiculos
+                .collectAsState(initial = emptyList())
+
             HomeScreen(
                 onIrKilometraje = {
                     pantallaActual = "kilometraje"
@@ -108,9 +117,13 @@ fun NavegacionApp() {
                 },
                 onIrConfiguracion = {
                     pantallaActual = "configuracion"
-                }
+                },
+
+                // Enviamos los vehículos reales a HomeScreen.
+                vehiculos = vehiculos
             )
         }
+
 
         "vehiculo" -> {
             VehicleRegisterScreen(
