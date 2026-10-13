@@ -12,6 +12,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.flow.flowOf
 
+import androidx.compose.runtime.LaunchedEffect
+import com.example.autocare.viewmodel.HistorialViewModel
+import com.example.autocare.viewmodel.HistorialViewModelFactory
+import com.example.autocare.viewmodel.HistorialUiState
+
 import com.example.autocare.AplicacionAutoCare
 import com.example.autocare.data.Vehiculo
 import com.example.autocare.screens.HomeScreen
@@ -176,43 +181,61 @@ fun NavegacionApp() {
         }
 
 
+
         "historial" -> {
 
-            // Observamos los vehículos registrados en Room.
+            // Consultamos los vehículos guardados en Room.
             val vehiculos by aplicacion.vehiculoRepository
                 .todosLosVehiculos
                 .collectAsStateWithLifecycle(
                     initialValue = emptyList()
                 )
 
-            // Estado del vehículo seleccionado.
+            // Guardamos el vehículo seleccionado.
             var vehiculoSeleccionadoId by remember {
                 mutableStateOf<Int?>(null)
             }
 
-            // Si no hay selección, usamos el primer vehículo.
+            // Si todavía no seleccionamos uno,
+            // utilizamos el primer vehículo registrado.
             val vehiculoId = vehiculos.find {
                 it.id == vehiculoSeleccionadoId
             }?.id ?: vehiculos.firstOrNull()?.id
 
-            // Consultamos los registros del vehículo seleccionado.
-            val registros by remember(vehiculoId) {
-
-                if (vehiculoId != null) {
-
+            // Creamos el ViewModel mediante nuestra Factory.
+            val historialViewModel: HistorialViewModel = viewModel(
+                factory = HistorialViewModelFactory(
                     aplicacion.registroKilometrajeRepository
-                        .obtenerRegistrosPorVehiculo(vehiculoId)
-
-                } else {
-
-                    flowOf(emptyList<RegistroKilometraje>())
-                }
-
-            }.collectAsStateWithLifecycle(
-                initialValue = emptyList()
+                )
             )
 
-            // Enviamos los datos a la pantalla.
+            // Cuando cambia el vehículo, consultamos
+            // automáticamente su historial.
+            LaunchedEffect(vehiculoId) {
+
+                if (vehiculoId != null) {
+                    historialViewModel.cargarHistorial(vehiculoId)
+                }
+            }
+
+            // Observamos el estado del historial.
+            val estadoHistorial by historialViewModel.uiState
+                .collectAsStateWithLifecycle()
+
+            // Obtenemos los registros cuando la consulta termina.
+            val registros = when (val estado = estadoHistorial) {
+
+                is HistorialUiState.Success -> {
+                    estado.registros
+                }
+
+                else -> {
+                    emptyList()
+                }
+            }
+
+            // Mostramos nuestra pantalla.
+
             PantallaHistorial(
                 onVolver = {
                     pantallaActual = "inicio"
@@ -222,9 +245,12 @@ fun NavegacionApp() {
                 vehiculoSeleccionadoId = vehiculoId,
                 onSeleccionarVehiculo = { id ->
                     vehiculoSeleccionadoId = id
-                }
+                },
+                estadoHistorial = estadoHistorial
             )
+
         }
+
 
 
 

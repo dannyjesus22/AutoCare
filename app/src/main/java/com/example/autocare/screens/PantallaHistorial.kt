@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.autocare.data.RegistroKilometraje
 import com.example.autocare.data.Vehiculo
+import com.example.autocare.viewmodel.HistorialUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -22,6 +23,7 @@ fun PantallaHistorial(
     registros: List<RegistroKilometraje>,
     vehiculoSeleccionadoId: Int?,
     onSeleccionarVehiculo: (Int) -> Unit,
+    estadoHistorial: HistorialUiState,
     onGenerarPdf: () -> Unit = {}
 ) {
 
@@ -215,18 +217,41 @@ fun PantallaHistorial(
             // Mostramos el contenido según la pestaña.
             when (pestanaSeleccionada) {
 
+
                 0 -> {
 
-                    // Filtramos los registros para que
-                    // correspondan al vehículo seleccionado.
-                    val registrosDelVehiculo = registros.filter {
-                        it.vehiculoId == vehiculoSeleccionado?.id
-                    }
+                    // Mostramos el contenido según el estado del ViewModel.
+                    when (val estado = estadoHistorial) {
 
-                    HistorialKilometraje(
-                        registros = registrosDelVehiculo
-                    )
+                        is HistorialUiState.Loading -> {
+
+                            // Indicador mientras se consultan los registros.
+                            CircularProgressIndicator()
+                        }
+
+                        is HistorialUiState.Success -> {
+
+                            // Mostramos los registros del vehículo seleccionado.
+                            val registrosDelVehiculo = estado.registros.filter {
+                                it.vehiculoId == vehiculoSeleccionado?.id
+                            }
+
+                            HistorialKilometraje(
+                                registros = registrosDelVehiculo
+                            )
+                        }
+
+                        is HistorialUiState.Error -> {
+
+                            // Mensaje cuando ocurre un error.
+                            Text(
+                                text = estado.mensaje,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
                 }
+
 
                 1 -> {
 
