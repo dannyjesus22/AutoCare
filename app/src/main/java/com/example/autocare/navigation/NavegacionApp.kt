@@ -4,11 +4,13 @@ package com.example.autocare.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.flow.flowOf
 
 import com.example.autocare.AplicacionAutoCare
 import com.example.autocare.data.Vehiculo
@@ -25,6 +27,8 @@ import com.example.autocare.viewmodel.VehiculoViewModel
 import com.example.autocare.viewmodel.VehiculoViewModelFactory
 import com.example.autocare.viewmodel.RegistroKilometrajeViewModel
 import com.example.autocare.viewmodel.RegistroKilometrajeViewModelFactory
+import com.example.autocare.data.RegistroKilometraje
+
 
 @Composable
 fun NavegacionApp() {
@@ -171,13 +175,59 @@ fun NavegacionApp() {
             )
         }
 
+
         "historial" -> {
+
+            // Observamos los vehículos registrados en Room.
+            val vehiculos by aplicacion.vehiculoRepository
+                .todosLosVehiculos
+                .collectAsStateWithLifecycle(
+                    initialValue = emptyList()
+                )
+
+            // Estado del vehículo seleccionado.
+            var vehiculoSeleccionadoId by remember {
+                mutableStateOf<Int?>(null)
+            }
+
+            // Si no hay selección, usamos el primer vehículo.
+            val vehiculoId = vehiculos.find {
+                it.id == vehiculoSeleccionadoId
+            }?.id ?: vehiculos.firstOrNull()?.id
+
+            // Consultamos los registros del vehículo seleccionado.
+            val registros by remember(vehiculoId) {
+
+                if (vehiculoId != null) {
+
+                    aplicacion.registroKilometrajeRepository
+                        .obtenerRegistrosPorVehiculo(vehiculoId)
+
+                } else {
+
+                    flowOf(emptyList<RegistroKilometraje>())
+                }
+
+            }.collectAsStateWithLifecycle(
+                initialValue = emptyList()
+            )
+
+            // Enviamos los datos a la pantalla.
             PantallaHistorial(
                 onVolver = {
                     pantallaActual = "inicio"
+                },
+                vehiculos = vehiculos,
+                registros = registros,
+                vehiculoSeleccionadoId = vehiculoId,
+                onSeleccionarVehiculo = { id ->
+                    vehiculoSeleccionadoId = id
                 }
             )
         }
+
+
+
 
         "configuracion" -> {
             PantallaConfiguracion(
