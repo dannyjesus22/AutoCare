@@ -43,6 +43,9 @@ import com.example.autocare.data.Mantenimiento
 import com.example.autocare.data.RegistroKilometraje
 import com.example.autocare.data.Vehiculo
 import com.example.autocare.viewmodel.HistorialUiState
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -211,19 +214,50 @@ fun SeccionHistorialKilometraje(registros: List<RegistroKilometraje>) {
     if (registros.isEmpty()) {
         Text("No hay registros de kilometraje.", color = Color.Gray)
     } else {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            registros.forEach { reg ->
+        // Ordenamos los registros cronológicamente de más reciente a más antiguo
+        val registrosOrdenados = remember(registros) { registros.sortedByDescending { it.id } }
+        val formatoFechaHora = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()) }
+
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            registrosOrdenados.forEachIndexed { index, reg ->
+                val regAnterior = registrosOrdenados.getOrNull(index + 1)
+                val recorrido = if (regAnterior != null) {
+                    reg.kilometrajeActual - regAnterior.kilometrajeActual
+                } else {
+                    0
+                }
+
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9))
                 ) {
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .padding(14.dp)
                     ) {
-                        Text(text = "Valor: ${reg.kilometrajeActual} km", fontWeight = FontWeight.Bold)
+                        Text(
+                            text = formatoFechaHora.format(Date(reg.fecha)),
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1B5E20)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        if (recorrido > 0) {
+                            Text(
+                                text = "Recorrido: $recorrido km",
+                                fontSize = 13.sp,
+                                color = Color.DarkGray
+                            )
+                        }
+
+                        Text(
+                            text = "Kilometraje total: ${reg.kilometrajeActual} km",
+                            fontSize = 13.sp,
+                            color = Color.DarkGray
+                        )
                     }
                 }
             }
@@ -242,6 +276,10 @@ fun SeccionHistorialMantenimiento(mantenimientos: List<Mantenimiento>) {
     } else {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             mantenimientos.forEach { mantenimiento ->
+                val partesNotas = mantenimiento.notas.split(" - ", limit = 2)
+                val taller = if (partesNotas.size > 1) partesNotas[0] else ""
+                val observacion = if (partesNotas.size > 1) partesNotas[1] else mantenimiento.notas
+
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
@@ -284,9 +322,20 @@ fun SeccionHistorialMantenimiento(mantenimientos: List<Mantenimiento>) {
                             )
                         }
 
-                        if (mantenimiento.notas.isNotBlank()) {
+                        if (taller.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Notas: ${mantenimiento.notas}",
+                                text = "🏭 Taller: $taller",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF002B66)
+                            )
+                        }
+
+                        if (observacion.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "📝 Observación: $observacion",
                                 fontSize = 12.sp,
                                 color = Color.Gray
                             )
