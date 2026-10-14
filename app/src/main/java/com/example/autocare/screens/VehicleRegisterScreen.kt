@@ -33,6 +33,7 @@ import com.example.autocare.data.Vehiculo
 import com.example.autocare.viewmodel.VehiculoViewModel
 import java.util.Calendar
 
+// STATEFUL: administra los estados y guarda los vehículos.
 @Composable
 fun VehicleRegisterScreen(
     onVolver: () -> Unit,
@@ -40,10 +41,10 @@ fun VehicleRegisterScreen(
     vehiculoEditar: Vehiculo? = null
 ) {
 
-    // Si vehiculoEditar es null, estamos registrando.
-    // Si contiene un vehículo, estamos editándolo.
+    // Si es null, registramos. Si no, editamos.
     val modoEdicion = vehiculoEditar != null
 
+    // Estados del formulario
     var marca by remember(vehiculoEditar) {
         mutableStateOf(vehiculoEditar?.marca ?: "")
     }
@@ -88,69 +89,38 @@ fun VehicleRegisterScreen(
         }
 
         Text(
-            text = if (modoEdicion) "Editar vehículo" else "Registrar vehículo",
+            text = if (modoEdicion) {
+                "Editar vehículo"
+            } else {
+                "Registrar vehículo"
+            },
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF0D47A1)
         )
 
         Text(
-            text = if (modoEdicion)
+            text = if (modoEdicion) {
                 "Modifica los datos de tu vehículo"
-            else
-                "Ingresa los datos de tu vehículo",
+            } else {
+                "Ingresa los datos de tu vehículo"
+            },
             fontSize = 16.sp,
             color = Color.Gray
         )
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        OutlinedTextField(
-            value = marca,
-            onValueChange = { marca = it },
-            label = { Text("Marca") },
-            placeholder = { Text("Ej: Chevrolet") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        OutlinedTextField(
-            value = modelo,
-            onValueChange = { modelo = it },
-            label = { Text("Modelo") },
-            placeholder = { Text("Ej: Corsa Evolution") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        OutlinedTextField(
-            value = anio,
-            onValueChange = { anio = it },
-            label = { Text("Año") },
-            placeholder = { Text("Ej: 2007") },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Number
-            ),
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        OutlinedTextField(
-            value = kilometraje,
-            onValueChange = { kilometraje = it },
-            label = { Text("Kilometraje actual") },
-            placeholder = { Text("Ej: 185462") },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Number
-            ),
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
+        // Enviamos los estados al componente Stateless.
+        VehicleRegisterContent(
+            marca = marca,
+            onMarcaChange = { marca = it },
+            modelo = modelo,
+            onModeloChange = { modelo = it },
+            anio = anio,
+            onAnioChange = { anio = it },
+            kilometraje = kilometraje,
+            onKilometrajeChange = { kilometraje = it }
         )
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -176,6 +146,7 @@ fun VehicleRegisterScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
+        // Mostrar error si los datos no son válidos.
         if (mensajeError.isNotEmpty()) {
             Text(
                 text = mensajeError,
@@ -193,8 +164,10 @@ fun VehicleRegisterScreen(
                 val kilometrajeNumero = kilometraje.toIntOrNull()
 
                 when {
-                    marca.isBlank() || modelo.isBlank() ||
-                            anio.isBlank() || kilometraje.isBlank() -> {
+                    marca.isBlank() ||
+                            modelo.isBlank() ||
+                            anio.isBlank() ||
+                            kilometraje.isBlank() -> {
                         mensajeError = "Completa todos los campos."
                     }
 
@@ -214,7 +187,7 @@ fun VehicleRegisterScreen(
 
                         if (vehiculoEditar != null) {
 
-                            // Conservar el ID del vehículo original
+                            // Editar conservando el ID original.
                             val vehiculoActualizado = vehiculoEditar.copy(
                                 marca = marca.trim(),
                                 modelo = modelo.trim(),
@@ -229,7 +202,7 @@ fun VehicleRegisterScreen(
 
                         } else {
 
-                            // Crear un vehículo nuevo
+                            // Registrar un vehículo nuevo.
                             val nuevoVehiculo = Vehiculo(
                                 marca = marca.trim(),
                                 modelo = modelo.trim(),
@@ -255,12 +228,79 @@ fun VehicleRegisterScreen(
             )
         ) {
             Text(
-                text = if (modoEdicion)
+                text = if (modoEdicion) {
                     "Guardar cambios"
-                else
-                    "Guardar vehículo",
+                } else {
+                    "Guardar vehículo"
+                },
                 fontSize = 17.sp
             )
         }
+    }
+}
+
+
+// STATELESS: muestra los campos sin guardar sus estados.
+@Composable
+fun VehicleRegisterContent(
+    marca: String,
+    onMarcaChange: (String) -> Unit,
+    modelo: String,
+    onModeloChange: (String) -> Unit,
+    anio: String,
+    onAnioChange: (String) -> Unit,
+    kilometraje: String,
+    onKilometrajeChange: (String) -> Unit
+) {
+
+    Column {
+
+        OutlinedTextField(
+            value = marca,
+            onValueChange = onMarcaChange,
+            label = { Text("Marca") },
+            placeholder = { Text("Ej: Chevrolet") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        OutlinedTextField(
+            value = modelo,
+            onValueChange = onModeloChange,
+            label = { Text("Modelo") },
+            placeholder = { Text("Ej: Corsa Evolution") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        OutlinedTextField(
+            value = anio,
+            onValueChange = onAnioChange,
+            label = { Text("Año") },
+            placeholder = { Text("Ej: 2007") },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number
+            ),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        OutlinedTextField(
+            value = kilometraje,
+            onValueChange = onKilometrajeChange,
+            label = { Text("Kilometraje actual") },
+            placeholder = { Text("Ej: 185462") },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number
+            ),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }

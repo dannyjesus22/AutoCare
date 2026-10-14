@@ -40,4 +40,10 @@ class VehiculoViewModel(
             repository.eliminarVehiculo(vehiculo)
         }
     }
+
+    // Buscar un vehículo por su ID en Room.
+    suspend fun obtenerVehiculoPorId(id: Int): Vehiculo? {
+        return repository.obtenerVehiculoPorId(id)
+    }
+
 }

@@ -1,33 +1,27 @@
 
 package com.example.autocare.screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.autocare.data.Vehiculo
 
 @Composable
 fun HomeScreen(
     onIrKilometraje: () -> Unit,
     onIrMantenimiento: () -> Unit,
     onIrHistorial: () -> Unit,
-    onIrConfiguracion: () -> Unit
+    onIrConfiguracion: () -> Unit,
+
+    // Lista de vehículos que viene desde Room
+    vehiculos: List<Vehiculo> = emptyList()
 ) {
 
     Column(
@@ -38,7 +32,7 @@ fun HomeScreen(
     ) {
 
         Text(
-            text = "Hola, Danny 👋",
+            text = "Bienvenido a AutoCare 👋",
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF0D47A1)
@@ -52,42 +46,84 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Tarjeta del vehículo (datos de ejemplo por ahora)
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = Color(0xFFE3F2FD)
-            )
-        ) {
+        Text(
+            text = "Mis vehículos (${vehiculos.size})",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold
+        )
 
-            Column(
-                modifier = Modifier.padding(18.dp)
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Mostrar un mensaje si todavía no hay vehículos
+        if (vehiculos.isEmpty()) {
+
+            Card(
+                modifier = Modifier.fillMaxWidth()
             ) {
+                Column(
+                    modifier = Modifier.padding(18.dp)
+                ) {
+                    Text("Todavía no tienes vehículos registrados.")
 
-                Text(
-                    text = "Chevrolet Corsa",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0D47A1)
-                )
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                Text("Evolution 2007")
+                    Text(
+                        text = "Puedes agregar uno desde Configuración.",
+                        color = Color.Gray
+                    )
 
-                Spacer(modifier = Modifier.height(5.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                Text(
-                    text = "185.420 km",
-                    fontWeight = FontWeight.Bold
-                )
+                    Button(onClick = onIrConfiguracion) {
+                        Text("Ir a Configuración")
+                    }
+                }
+            }
 
-                Text(
-                    text = "Inyección",
-                    color = Color.Gray
-                )
+        } else {
+
+            // Mostrar todos los vehículos registrados en Room
+            vehiculos.forEach { vehiculo ->
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFFE3F2FD)
+                    )
+                ) {
+
+                    Column(
+                        modifier = Modifier.padding(18.dp)
+                    ) {
+
+                        Text(
+                            text = "${vehiculo.marca} ${vehiculo.modelo}",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0D47A1)
+                        )
+
+                        Text("Año: ${vehiculo.anio}")
+
+                        Spacer(modifier = Modifier.height(5.dp))
+
+                        Text(
+                            text = "Kilometraje: ${vehiculo.kilometraje} km",
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Text(
+                            text = "Tipo: ${vehiculo.tipoVehiculo}",
+                            color = Color.Gray
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
             }
         }
 
-        Spacer(modifier = Modifier.height(25.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         Text(
             text = "Próximos mantenimientos",
@@ -97,6 +133,7 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
+        // Pendiente de conectar con los mantenimientos de Maykol
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
@@ -109,33 +146,16 @@ fun HomeScreen(
             ) {
 
                 Text(
-                    text = "Cambio de aceite",
+                    text = "Sin información de mantenimientos",
                     fontWeight = FontWeight.Bold
                 )
 
-                Text("Faltan 580 km")
-            }
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = Color(0xFFE8F5E9)
-            )
-        ) {
-
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
+                Spacer(modifier = Modifier.height(5.dp))
 
                 Text(
-                    text = "Revisión de frenos",
-                    fontWeight = FontWeight.Bold
+                    text = "Aquí aparecerán tus próximos mantenimientos registrados.",
+                    color = Color.Gray
                 )
-
-                Text("Faltan 2.500 km")
             }
         }
 

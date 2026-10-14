@@ -1,41 +1,76 @@
 package com.example.autocare.screens
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.autocare.data.Mantenimiento
+import com.example.autocare.data.RegistroKilometraje
+import com.example.autocare.data.Vehiculo
+import com.example.autocare.viewmodel.HistorialUiState
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaHistorial(
-    onVolver: () -> Unit
+    onVolver: () -> Unit,
+    vehiculos: List<Vehiculo>,
+    registros: List<RegistroKilometraje>,
+    registrosMantenimiento: List<Mantenimiento> = emptyList(),
+    vehiculoSeleccionadoId: Int?,
+    onSeleccionarVehiculo: (Int) -> Unit,
+    estadoHistorial: HistorialUiState,
+    onGenerarPdf: () -> Unit = {}
 ) {
+    var pestanaSeleccionada by remember { mutableIntStateOf(0) }
+
+    val vehiculoSeleccionado = vehiculos.find {
+        it.id == vehiculoSeleccionadoId
+    } ?: vehiculos.firstOrNull()
+
+    var menuAbierto by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp)
     ) {
-
-        // Regresar al inicio
-        TextButton(
-            onClick = {
-                onVolver()
-            }
-        ) {
+        TextButton(onClick = onVolver) {
             Text("← Volver")
         }
 
@@ -52,143 +87,213 @@ fun PantallaHistorial(
             color = Color.Gray
         )
 
-        Spacer(
-            modifier = Modifier.height(20.dp)
-        )
+        Spacer(modifier = Modifier.height(20.dp))
 
-        // Información del vehículo
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = Color(0xFFE3F2FD)
-            )
-        ) {
-
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-
-                Text(
-                    text = "Chevrolet Corsa Evolution 2007",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0D47A1)
-                )
-
-                Text(
-                    text = "Kilometraje actual: 185.462 km",
-                    fontSize = 15.sp
-                )
-            }
-        }
-
-        Spacer(
-            modifier = Modifier.height(20.dp)
-        )
-
-        Text(
-            text = "Último mantenimiento",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(
-            modifier = Modifier.height(10.dp)
-        )
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = Color(0xFFFFF8E1)
-            )
-        ) {
-
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-
-                Text(
-                    text = "Cambio de aceite",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Text(
-                    text = "Fecha: 28/09/2026"
-                )
-
-                Text(
-                    text = "Kilometraje: 185.462 km"
-                )
-
-                Text(
-                    text = "Costo: $35"
-                )
-            }
-        }
-
-        Spacer(
-            modifier = Modifier.height(20.dp)
-        )
-
-        Text(
-            text = "Último registro de kilometraje",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(
-            modifier = Modifier.height(10.dp)
-        )
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = Color(0xFFE8F5E9)
-            )
-        ) {
-
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-
-                Text(
-                    text = "28/09/2026",
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Text(
-                    text = "Recorrido: 42 km"
-                )
-
-                Text(
-                    text = "Kilometraje total: 185.462 km"
-                )
-            }
-        }
-
-        Spacer(
-            modifier = Modifier.height(20.dp)
-        )
-
-        // Aquí integraremos el reporte para no crear otra pantalla
-        Button(
-            onClick = {
-                // Más adelante generaremos el PDF
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(55.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF0D47A1)
-            )
-        ) {
-
+        if (vehiculos.isEmpty()) {
             Text(
-                text = "Generar reporte PDF",
-                fontSize = 17.sp
+                text = "No tienes vehículos registrados.",
+                color = Color.Gray
             )
+        } else {
+            ExposedDropdownMenuBox(
+                expanded = menuAbierto,
+                onExpandedChange = { menuAbierto = !menuAbierto }
+            ) {
+                OutlinedTextField(
+                    value = vehiculoSeleccionado?.let { "${it.marca} ${it.modelo}" } ?: "",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Seleccionar vehículo") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = menuAbierto) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                )
+
+                ExposedDropdownMenu(
+                    expanded = menuAbierto,
+                    onDismissRequest = { menuAbierto = false }
+                ) {
+                    vehiculos.forEach { vehiculo ->
+                        DropdownMenuItem(
+                            text = { Text("${vehiculo.marca} ${vehiculo.modelo} ${vehiculo.anio}") },
+                            onClick = {
+                                onSeleccionarVehiculo(vehiculo.id)
+                                menuAbierto = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(15.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = vehiculoSeleccionado?.let { "${it.marca} ${it.modelo} ${it.anio}" } ?: "Vehículo no seleccionado",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0D47A1)
+                    )
+                    Spacer(modifier = Modifier.height(5.dp))
+                    Text(
+                        text = "Kilometraje actual: ${vehiculoSeleccionado?.kilometraje ?: 0} km"
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            TabRow(selectedTabIndex = pestanaSeleccionada) {
+                Tab(
+                    selected = pestanaSeleccionada == 0,
+                    onClick = { pestanaSeleccionada = 0 },
+                    text = { Text("Kilometraje") }
+                )
+                Tab(
+                    selected = pestanaSeleccionada == 1,
+                    onClick = { pestanaSeleccionada = 1 },
+                    text = { Text("Mantenimiento") }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(15.dp))
+
+            when (pestanaSeleccionada) {
+                0 -> {
+                    when (val estado = estadoHistorial) {
+                        is HistorialUiState.Loading -> CircularProgressIndicator()
+                        is HistorialUiState.Success -> {
+                            val registrosDelVehiculo = estado.registros.filter {
+                                it.vehiculoId == vehiculoSeleccionado?.id
+                            }
+                            SeccionHistorialKilometraje(registros = registrosDelVehiculo)
+                        }
+                        is HistorialUiState.Error -> {
+                            Text(
+                                text = estado.mensaje,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+
+                1 -> {
+                    val mantenimientosDelVehiculo = registrosMantenimiento.filter {
+                        it.vehiculoId == vehiculoSeleccionado?.id
+                    }
+                    SeccionHistorialMantenimiento(mantenimientos = mantenimientosDelVehiculo)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Button(
+                onClick = onGenerarPdf,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(55.dp),
+                enabled = false,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D47A1))
+            ) {
+                Text(text = "Generar reporte PDF", fontSize = 17.sp)
+            }
+        }
+    }
+}
+
+@Composable
+fun SeccionHistorialKilometraje(registros: List<RegistroKilometraje>) {
+    if (registros.isEmpty()) {
+        Text("No hay registros de kilometraje.", color = Color.Gray)
+    } else {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            registros.forEach { reg ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(text = "Valor: ${reg.kilometrajeActual} km", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SeccionHistorialMantenimiento(mantenimientos: List<Mantenimiento>) {
+    if (mantenimientos.isEmpty()) {
+        Text(
+            text = "No hay registros de mantenimiento para este vehículo.",
+            color = Color.Gray,
+            modifier = Modifier.padding(vertical = 12.dp)
+        )
+    } else {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            mantenimientos.forEach { mantenimiento ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFEDF4FC))
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = mantenimiento.titulo,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF002B66)
+                            )
+                            Text(
+                                text = "📅 ${mantenimiento.fecha}",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF0066FF)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Text(
+                            text = "Realizado a los: ${mantenimiento.kilometrajeRealizado} km",
+                            fontSize = 13.sp,
+                            color = Color.DarkGray
+                        )
+
+                        if (mantenimiento.costo > 0) {
+                            Text(
+                                text = "Costo: $${mantenimiento.costo}",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF2E7D32)
+                            )
+                        }
+
+                        if (mantenimiento.notas.isNotBlank()) {
+                            Text(
+                                text = "Notas: ${mantenimiento.notas}",
+                                fontSize = 12.sp,
+                                color = Color.Gray
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

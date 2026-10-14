@@ -1,27 +1,21 @@
 package com.example.autocare.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.autocare.data.Mantenimiento
 import com.example.autocare.data.MantenimientoRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import com.example.autocare.utils.NotificacionHelper
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
 class MantenimientoViewModel(
     private val repository: MantenimientoRepository
 ) : ViewModel() {
 
-    private val _listaMantenimientos = MutableStateFlow<List<Mantenimiento>>(emptyList())
-    val listaMantenimientos: StateFlow<List<Mantenimiento>> = _listaMantenimientos.asStateFlow()
-
-    fun cargarMantenimientosPorVehiculo(vehiculoId: Int) {
-        viewModelScope.launch {
-            repository.obtenerMantenimientosPorVehiculo(vehiculoId).collect { mantenimientos ->
-                _listaMantenimientos.value = mantenimientos
-            }
-        }
+    fun obtenerMantenimientosPorVehiculo(vehiculoId: Int): Flow<List<Mantenimiento>> {
+        return repository.obtenerMantenimientosPorVehiculo(vehiculoId)
     }
 
     fun guardarMantenimiento(
@@ -51,9 +45,24 @@ class MantenimientoViewModel(
         }
     }
 
-    fun eliminarMantenimiento(mantenimiento: Mantenimiento) {
+    fun verificarNotificacionKilometraje(
+        vehiculoId: Int,
+        nuevoKilometraje: Int,
+        context: Context
+    ) {
         viewModelScope.launch {
-            repository.eliminarMantenimiento(mantenimiento)
+            val mantenimientos = repository.obtenerMantenimientosPorVehiculo(vehiculoId).firstOrNull()
+
+            mantenimientos?.forEach { mantenimiento ->
+                val kmDisparoAlerta = mantenimiento.proximoKilometraje
+                if (kmDisparoAlerta != null && nuevoKilometraje >= kmDisparoAlerta) {
+                    val notificacionHelper = NotificacionHelper(context)
+                    notificacionHelper.enviarNotificacionMantenimiento(
+                        titulo = "Recordatorio de Mantenimiento",
+                        mensaje = "Tu vehículo alcanzó los $nuevoKilometraje km. Tienes pendiente: ${mantenimiento.titulo}"
+                    )
+                }
+            }
         }
     }
 }
