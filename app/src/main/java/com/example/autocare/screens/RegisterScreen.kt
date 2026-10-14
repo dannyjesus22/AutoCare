@@ -1,25 +1,12 @@
+
 package com.example.autocare.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -28,17 +15,31 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.autocare.viewmodel.usuarios.EstadoUsuario
+import com.example.autocare.viewmodel.usuarios.UsuarioViewModel
 
 @Composable
 fun RegisterScreen(
-    onIrLogin: () -> Unit
+    onIrLogin: () -> Unit,
+    usuarioViewModel: UsuarioViewModel
 ) {
-
-    // Estados de los datos ingresados en el formulario
     var nombre by remember { mutableStateOf("") }
     var correo by remember { mutableStateOf("") }
     var contrasena by remember { mutableStateOf("") }
     var confirmarContrasena by remember { mutableStateOf("") }
+
+    val estado by usuarioViewModel.estado.collectAsState()
+
+    // Cuando el registro termina correctamente,
+    // regresar al inicio de sesión.
+    LaunchedEffect(estado) {
+        if (estado is EstadoUsuario.Exito) {
+            usuarioViewModel.limpiarEstado()
+            onIrLogin()
+        }
+    }
+
+    val cargando = estado is EstadoUsuario.Cargando
 
     Column(
         modifier = Modifier
@@ -85,6 +86,7 @@ fun RegisterScreen(
             onValueChange = { nombre = it },
             label = { Text("Nombre completo") },
             singleLine = true,
+            enabled = !cargando,
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -98,6 +100,7 @@ fun RegisterScreen(
                 keyboardType = KeyboardType.Email
             ),
             singleLine = true,
+            enabled = !cargando,
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -112,6 +115,7 @@ fun RegisterScreen(
                 keyboardType = KeyboardType.Password
             ),
             singleLine = true,
+            enabled = !cargando,
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -126,15 +130,33 @@ fun RegisterScreen(
                 keyboardType = KeyboardType.Password
             ),
             singleLine = true,
+            enabled = !cargando,
             modifier = Modifier.fillMaxWidth()
         )
+
+        // Mostrar el error que devuelve el ViewModel.
+        if (estado is EstadoUsuario.Error) {
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = (estado as EstadoUsuario.Error).mensaje,
+                color = Color.Red,
+                fontSize = 14.sp
+            )
+        }
 
         Spacer(modifier = Modifier.height(25.dp))
 
         Button(
             onClick = {
-                // Más adelante guardaremos el usuario en la base de datos
+                usuarioViewModel.registrar(
+                    nombre = nombre,
+                    correo = correo,
+                    contrasena = contrasena,
+                    confirmarContrasena = confirmarContrasena
+                )
             },
+            enabled = !cargando,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(55.dp),
@@ -143,18 +165,28 @@ fun RegisterScreen(
                 containerColor = Color(0xFF0D47A1)
             )
         ) {
-            Text(
-                text = "Crear cuenta",
-                fontSize = 17.sp
-            )
+            if (cargando) {
+                CircularProgressIndicator(
+                    modifier = Modifier.height(24.dp),
+                    color = Color.White,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Text(
+                    text = "Crear cuenta",
+                    fontSize = 17.sp
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(10.dp))
 
         TextButton(
             onClick = {
+                usuarioViewModel.limpiarEstado()
                 onIrLogin()
-            }
+            },
+            enabled = !cargando
         ) {
             Text("¿Ya tienes una cuenta? Inicia sesión")
         }

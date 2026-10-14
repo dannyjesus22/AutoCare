@@ -3,11 +3,10 @@ package com.example.autocare.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.example.autocare.data.IRegistroKilometrajeRepository
+import com.example.autocare.data.RegistroKilometrajeRepository
 
-// Factory encargada de crear nuestro HistorialViewModel.
 class HistorialViewModelFactory(
-    private val repository: IRegistroKilometrajeRepository
+    private val repository: RegistroKilometrajeRepository
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
@@ -15,13 +14,13 @@ class HistorialViewModelFactory(
         modelClass: Class<T>
     ): T {
 
-        // Comprobamos que nos soliciten HistorialViewModel.
         if (modelClass.isAssignableFrom(HistorialViewModel::class.java)) {
 
-            // Entregamos al ViewModel el Repository recibido.
             return HistorialViewModel(repository) as T
         }
 
-        throw IllegalArgumentException("ViewModel desconocido")
+        throw IllegalArgumentException(
+            "ViewModel desconocido"
+        )
     }
 }

@@ -3,11 +3,10 @@ package com.example.autocare.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.example.autocare.data.IRegistroKilometrajeRepository
+import com.example.autocare.data.RegistroKilometrajeRepository
 
-// Factory para crear el ViewModel de kilometraje.
 class RegistroKilometrajeViewModelFactory(
-    private val repository: IRegistroKilometrajeRepository
+    private val repository: RegistroKilometrajeRepository
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
@@ -15,12 +14,12 @@ class RegistroKilometrajeViewModelFactory(
         modelClass: Class<T>
     ): T {
 
-        // Verificamos qué ViewModel nos están solicitando.
-        if (modelClass.isAssignableFrom(
+        if (
+            modelClass.isAssignableFrom(
                 RegistroKilometrajeViewModel::class.java
             )
         ) {
-            // Creamos el ViewModel utilizando nuestra interfaz.
+
             return RegistroKilometrajeViewModel(repository) as T
         }
 

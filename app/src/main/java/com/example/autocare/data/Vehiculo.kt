@@ -13,5 +13,9 @@ data class Vehiculo(
     val modelo: String,
     val anio: Int,
     val kilometraje: Int,
-    val tipoVehiculo: String
+    val tipoVehiculo: String,
+
+    // Identifica al usuario propietario del vehículo.
+    // null se utilizará temporalmente para los datos antiguos.
+    val usuarioId: Int? = null
 )

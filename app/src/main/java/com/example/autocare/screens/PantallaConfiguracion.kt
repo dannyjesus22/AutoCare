@@ -1,3 +1,4 @@
+
 package com.example.autocare.screens
 
 import android.widget.Toast
@@ -35,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+
 import com.example.autocare.data.ConfiguracionDataStore
 import com.example.autocare.data.Vehiculo
 import com.example.autocare.viewmodel.ConfiguracionViewModel
@@ -46,25 +48,45 @@ fun PantallaConfiguracion(
     onVolver: () -> Unit,
     onAgregarVehiculo: () -> Unit,
     onEditarVehiculo: (Vehiculo) -> Unit,
+    onCerrarSesion: () -> Unit,
     vehiculoViewModel: VehiculoViewModel
 ) {
+
     val context = LocalContext.current
 
-    // Inicializar DataStore y su ViewModel
-    val dataStore = remember { ConfiguracionDataStore(context) }
-    val configFactory = remember { ConfiguracionViewModelFactory(dataStore) }
-    val configViewModel: ConfiguracionViewModel = viewModel(factory = configFactory)
+    // Inicializar DataStore y su ViewModel.
+    val dataStore = remember {
+        ConfiguracionDataStore(context)
+    }
 
-    // Escuchar el estado de las preferencias desde DataStore
-    val notificacionesActivas by configViewModel.notificacionesActivadas.collectAsState()
-    val recordatoriosActivos by configViewModel.recordatoriosActivados.collectAsState()
+    val configFactory = remember {
+        ConfiguracionViewModelFactory(dataStore)
+    }
 
-    // Lista real de vehículos registrados en Room (Danny)
+    val configViewModel: ConfiguracionViewModel = viewModel(
+        factory = configFactory
+    )
+
+    // Escuchar las preferencias guardadas.
+    val notificacionesActivas by configViewModel
+        .notificacionesActivadas
+        .collectAsState()
+
+    val recordatoriosActivos by configViewModel
+        .recordatoriosActivados
+        .collectAsState()
+
+    // Vehículos de la cuenta activa.
     val vehiculos by vehiculoViewModel.vehiculos.collectAsState()
 
-    // Vehículo pendiente de eliminación
+    // Vehículo pendiente de eliminación.
     var vehiculoAEliminar by remember {
         mutableStateOf<Vehiculo?>(null)
+    }
+
+    // Controlar la confirmación de cierre de sesión.
+    var mostrarConfirmacionSalida by remember {
+        mutableStateOf(false)
     }
 
     Column(
@@ -139,7 +161,9 @@ fun PantallaConfiguracion(
 
                             Spacer(modifier = Modifier.height(6.dp))
 
-                            Text(text = "Año: ${vehiculo.anio}")
+                            Text(
+                                text = "Año: ${vehiculo.anio}"
+                            )
 
                             Text(
                                 text = "Tipo: ${vehiculo.tipoVehiculo}"
@@ -256,7 +280,11 @@ fun PantallaConfiguracion(
 
         Button(
             onClick = {
-                Toast.makeText(context, "Configuración guardada en DataStore", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    "Configuración guardada en DataStore",
+                    Toast.LENGTH_SHORT
+                ).show()
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -270,9 +298,49 @@ fun PantallaConfiguracion(
                 fontSize = 17.sp
             )
         }
+
+        Spacer(modifier = Modifier.height(35.dp))
+
+        // SECCIÓN DE CIERRE DE SESIÓN.
+        Text(
+            text = "Cuenta",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF0D47A1)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Puedes salir de tu cuenta sin perder tus vehículos ni registros.",
+            fontSize = 14.sp,
+            color = Color.Gray
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(
+            onClick = {
+                mostrarConfirmacionSalida = true
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(55.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFC62828)
+            )
+        ) {
+            Text(
+                text = "Cerrar sesión",
+                fontSize = 17.sp,
+                color = Color.White
+            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
     }
 
-    // Confirmación antes de eliminar un vehículo
+    // Confirmación para eliminar un vehículo.
     vehiculoAEliminar?.let { vehiculo ->
 
         AlertDialog(
@@ -304,6 +372,46 @@ fun PantallaConfiguracion(
                 TextButton(
                     onClick = {
                         vehiculoAEliminar = null
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    // Confirmación para cerrar sesión.
+    if (mostrarConfirmacionSalida) {
+
+        AlertDialog(
+            onDismissRequest = {
+                mostrarConfirmacionSalida = false
+            },
+            title = {
+                Text("Cerrar sesión")
+            },
+            text = {
+                Text(
+                    "¿Estás seguro de que deseas cerrar sesión? Tus vehículos y registros permanecerán guardados."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        mostrarConfirmacionSalida = false
+                        onCerrarSesion()
+                    }
+                ) {
+                    Text(
+                        text = "Sí, cerrar sesión",
+                        color = Color.Red
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        mostrarConfirmacionSalida = false
                     }
                 ) {
                     Text("Cancelar")

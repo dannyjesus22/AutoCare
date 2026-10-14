@@ -62,3 +62,44 @@ val MIGRACION_1_2 = object : Migration(1, 2) {
         )
     }
 }
+
+
+
+// Migración de versión 2 a 3.
+// Agrega usuarios y propietarios sin borrar registros.
+val MIGRACION_2_3 = object : Migration(2, 3) {
+
+    override fun migrate(db: SupportSQLiteDatabase) {
+
+        // Crear tabla de cuentas.
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `usuarios` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `nombre` TEXT NOT NULL,
+                `correo` TEXT NOT NULL,
+                `contrasenaHash` TEXT NOT NULL,
+                `salt` TEXT NOT NULL
+            )
+            """.trimIndent()
+        )
+
+        // Impedir correos duplicados.
+        db.execSQL(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS
+            `index_usuarios_correo`
+            ON `usuarios` (`correo`)
+            """.trimIndent()
+        )
+
+        // Agregar propietario a los vehículos.
+        // Los vehículos antiguos quedarán temporalmente sin propietario.
+        db.execSQL(
+            """
+            ALTER TABLE `vehiculos`
+            ADD COLUMN `usuarioId` INTEGER
+            """.trimIndent()
+        )
+    }
+}

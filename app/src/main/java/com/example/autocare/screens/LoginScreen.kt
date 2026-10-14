@@ -1,25 +1,12 @@
+
 package com.example.autocare.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -28,16 +15,43 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.autocare.viewmodel.usuarios.EstadoUsuario
+import com.example.autocare.viewmodel.usuarios.UsuarioViewModel
 
 @Composable
-fun LoginScreen(
-    onIniciarSesion: () -> Unit,
-    onIrRegistro: () -> Unit
-) {
 
-    // Estados que almacenan temporalmente lo escrito por el usuario
+fun LoginScreen(
+    onIniciarSesion: (Int) -> Unit,
+    onIrRegistro: () -> Unit,
+    usuarioViewModel: UsuarioViewModel
+)
+ {
+
     var correo by remember { mutableStateOf("") }
     var contrasena by remember { mutableStateOf("") }
+
+    // Observar el resultado del inicio de sesión.
+    val estado by usuarioViewModel.estado.collectAsState()
+
+    val cargando = estado is EstadoUsuario.Cargando
+
+    // Navegar solamente cuando las credenciales sean correctas.
+
+
+     LaunchedEffect(estado) {
+         val resultado = estado
+
+         if (resultado is EstadoUsuario.Exito) {
+
+             // Enviar el ID del usuario que inició sesión.
+             onIniciarSesion(resultado.usuario.id)
+
+             // Limpiar el estado después de procesar el resultado.
+             usuarioViewModel.limpiarEstado()
+         }
+     }
+
+
 
     Column(
         modifier = Modifier
@@ -88,6 +102,7 @@ fun LoginScreen(
                 keyboardType = KeyboardType.Email
             ),
             singleLine = true,
+            enabled = !cargando,
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -97,24 +112,36 @@ fun LoginScreen(
             value = contrasena,
             onValueChange = { contrasena = it },
             label = { Text("Contraseña") },
-
-            // Hace que la contraseña se muestre oculta
             visualTransformation = PasswordVisualTransformation(),
-
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password
             ),
             singleLine = true,
+            enabled = !cargando,
             modifier = Modifier.fillMaxWidth()
         )
+
+        // Mostrar mensajes de error.
+        if (estado is EstadoUsuario.Error) {
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = (estado as EstadoUsuario.Error).mensaje,
+                color = Color.Red,
+                fontSize = 14.sp
+            )
+        }
 
         Spacer(modifier = Modifier.height(25.dp))
 
         Button(
             onClick = {
-                onIniciarSesion()
+                usuarioViewModel.iniciarSesion(
+                    correo = correo,
+                    contrasena = contrasena
+                )
             },
-
+            enabled = !cargando,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(55.dp),
@@ -123,18 +150,28 @@ fun LoginScreen(
                 containerColor = Color(0xFF0D47A1)
             )
         ) {
-            Text(
-                text = "Iniciar sesión",
-                fontSize = 17.sp
-            )
+            if (cargando) {
+                CircularProgressIndicator(
+                    modifier = Modifier.height(24.dp),
+                    color = Color.White,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Text(
+                    text = "Iniciar sesión",
+                    fontSize = 17.sp
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(15.dp))
 
         TextButton(
             onClick = {
+                usuarioViewModel.limpiarEstado()
                 onIrRegistro()
-            }
+            },
+            enabled = !cargando
         ) {
             Text(
                 text = "¿No tienes una cuenta? Regístrate",

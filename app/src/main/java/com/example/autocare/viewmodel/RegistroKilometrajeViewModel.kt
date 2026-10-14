@@ -1,38 +1,61 @@
 
 package com.example.autocare.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.autocare.data.RegistroKilometraje
-import com.example.autocare.data.IRegistroKilometrajeRepository
+import com.example.autocare.data.RegistroKilometrajeRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 
 class RegistroKilometrajeViewModel(
-    private val repository: IRegistroKilometrajeRepository
+    private val repository: RegistroKilometrajeRepository
 ) : ViewModel() {
 
-    // Consultar el historial de un vehículo.
-    fun obtenerHistorial(
-        vehiculoId: Int
-    ): Flow<List<RegistroKilometraje>> {
-        return repository.obtenerRegistrosPorVehiculo(vehiculoId)
+    // Usuario que tiene la sesión iniciada.
+    private var usuarioActivoId: Int? = null
+
+    fun establecerUsuarioActivo(usuarioId: Int?) {
+        usuarioActivoId = usuarioId
     }
 
-    // Guardar el nuevo kilometraje total del vehículo.
+    // Consultar solamente el historial de un vehículo propio.
+    // Esta función es suspend porque primero verifica el propietario.
+    suspend fun obtenerHistorial(
+        vehiculoId: Int
+    ): Flow<List<RegistroKilometraje>> {
+
+        val usuarioId = usuarioActivoId
+            ?: return flowOf(emptyList())
+
+        return repository.obtenerRegistrosDeUsuario(
+            vehiculoId = vehiculoId,
+            usuarioId = usuarioId
+        )
+    }
+
+    // Guardar kilometraje solamente en vehículos propios.
     fun guardarKilometraje(
         vehiculoId: Int,
         kilometrajeActual: Int
     ) {
+
+        val usuarioId = usuarioActivoId ?: return
+
         viewModelScope.launch {
             try {
-                repository.guardarKilometraje(
+
+                repository.guardarKilometrajeDeUsuario(
                     vehiculoId = vehiculoId,
-                    kilometrajeActual = kilometrajeActual
+                    kilometrajeActual = kilometrajeActual,
+                    usuarioId = usuarioId
                 )
+
             } catch (e: Exception) {
-                // Temporalmente mostramos el error en Logcat.
-                android.util.Log.e(
+
+                Log.e(
                     "AutoCareKilometraje",
                     "Error al guardar kilometraje",
                     e
@@ -41,12 +64,29 @@ class RegistroKilometrajeViewModel(
         }
     }
 
-    // Eliminar un registro del historial.
+    // Eliminar solamente registros de vehículos propios.
     fun eliminarRegistro(
         registro: RegistroKilometraje
     ) {
+
+        val usuarioId = usuarioActivoId ?: return
+
         viewModelScope.launch {
-            repository.eliminarRegistro(registro)
+            try {
+
+                repository.eliminarRegistroDeUsuario(
+                    registro = registro,
+                    usuarioId = usuarioId
+                )
+
+            } catch (e: Exception) {
+
+                Log.e(
+                    "AutoCareKilometraje",
+                    "Error al eliminar registro",
+                    e
+                )
+            }
         }
     }
 }
