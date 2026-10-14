@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.autocare.data.Vehiculo
 
-@OptIn(ExperimentalMaterial3Api::class)
+// STATEFUL: administra los estados y valida el formulario.
 @Composable
 fun PantallaKilometraje(
     onVolver: () -> Unit,
@@ -23,39 +23,36 @@ fun PantallaKilometraje(
     onGuardarKilometraje: (Int, Int) -> Unit = { _, _ -> }
 ) {
 
-
-    // Guardamos únicamente el ID del vehículo seleccionado
+    // Guardamos el ID del vehículo seleccionado.
     var vehiculoSeleccionadoId by remember {
         mutableStateOf<Int?>(null)
     }
 
-    // Buscamos el vehículo actualizado en la lista de Room
+    // Obtenemos el vehículo actualizado de la lista.
     val vehiculoSeleccionado = vehiculos.find {
         it.id == vehiculoSeleccionadoId
     }
 
-
-    // Kilómetros recorridos durante el día
+    // Kilómetros recorridos durante el día.
     var kilometrosRecorridos by remember {
         mutableStateOf("")
     }
 
-    // Controla el menú de selección
-    var menuExpandido by remember {
-        mutableStateOf(false)
-    }
-
-    // Mensaje de validación
+    // Mensaje para las validaciones.
     var mensajeError by remember {
         mutableStateOf("")
     }
 
-
+    // Seleccionar automáticamente si existe un solo vehículo.
     LaunchedEffect(vehiculos) {
-        if (vehiculos.size == 1 && vehiculoSeleccionadoId == null) {
+        if (
+            vehiculos.size == 1 &&
+            vehiculoSeleccionadoId == null
+        ) {
             vehiculoSeleccionadoId = vehiculos.first().id
         }
 
+        // Limpiar la selección si el vehículo ya no existe.
         if (
             vehiculoSeleccionadoId != null &&
             vehiculos.none { it.id == vehiculoSeleccionadoId }
@@ -64,17 +61,91 @@ fun PantallaKilometraje(
         }
     }
 
-
+    // Convertir el texto a número.
     val kilometrosNuevos = kilometrosRecorridos.toIntOrNull()
 
+    // Kilometraje guardado actualmente.
     val kilometrajeActual = vehiculoSeleccionado?.kilometraje ?: 0
 
+    // Calcular el nuevo kilometraje sin desbordar Int.
     val nuevoKilometraje = kilometrosNuevos?.let {
         if (it >= 0) {
             kilometrajeActual.toLong() + it.toLong()
         } else {
             null
         }
+    }
+
+    // STATE HOISTING:
+    // Enviamos datos y funciones al componente Stateless.
+    ContenidoKilometraje(
+        onVolver = onVolver,
+        vehiculos = vehiculos,
+        vehiculoSeleccionadoId = vehiculoSeleccionadoId,
+        onSeleccionarVehiculo = { id ->
+            vehiculoSeleccionadoId = id
+            kilometrosRecorridos = ""
+            mensajeError = ""
+        },
+        vehiculoSeleccionado = vehiculoSeleccionado,
+        kilometrosRecorridos = kilometrosRecorridos,
+        onKilometrosChange = { texto ->
+            kilometrosRecorridos = texto.filter { it.isDigit() }
+            mensajeError = ""
+        },
+        nuevoKilometraje = nuevoKilometraje,
+        mensajeError = mensajeError,
+        onGuardar = {
+            val vehiculo = vehiculoSeleccionado
+            val recorridos = kilometrosNuevos
+
+            when {
+                vehiculo == null -> {
+                    mensajeError = "Selecciona un vehículo."
+                }
+
+                recorridos == null || recorridos <= 0 -> {
+                    mensajeError =
+                        "Ingresa una cantidad válida mayor a cero."
+                }
+
+                nuevoKilometraje == null ||
+                        nuevoKilometraje > Int.MAX_VALUE -> {
+                    mensajeError =
+                        "El kilometraje supera el límite permitido."
+                }
+
+                else -> {
+                    onGuardarKilometraje(
+                        vehiculo.id,
+                        nuevoKilometraje.toInt()
+                    )
+                }
+            }
+        }
+    )
+}
+
+
+// STATELESS: recibe los datos y muestra la interfaz.
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ContenidoKilometraje(
+    onVolver: () -> Unit,
+    vehiculos: List<Vehiculo>,
+    vehiculoSeleccionadoId: Int?,
+    onSeleccionarVehiculo: (Int) -> Unit,
+    vehiculoSeleccionado: Vehiculo?,
+    kilometrosRecorridos: String,
+    onKilometrosChange: (String) -> Unit,
+    nuevoKilometraje: Long?,
+    mensajeError: String,
+    onGuardar: () -> Unit
+) {
+
+    // Estado visual local: solo controla si el menú está abierto.
+    var menuExpandido by remember {
+        mutableStateOf(false)
     }
 
     Column(
@@ -103,7 +174,6 @@ fun PantallaKilometraje(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Seleccionar vehículo
         Text(
             text = "Selecciona tu vehículo",
             fontWeight = FontWeight.Bold
@@ -148,8 +218,8 @@ fun PantallaKilometraje(
                     menuExpandido = false
                 }
             ) {
-                vehiculos.forEach { vehiculo ->
 
+                vehiculos.forEach { vehiculo ->
                     DropdownMenuItem(
                         text = {
                             Text(
@@ -157,9 +227,7 @@ fun PantallaKilometraje(
                             )
                         },
                         onClick = {
-                            vehiculoSeleccionadoId = vehiculo.id
-                            kilometrosRecorridos = ""
-                            mensajeError = ""
+                            onSeleccionarVehiculo(vehiculo.id)
                             menuExpandido = false
                         }
                     )
@@ -169,6 +237,7 @@ fun PantallaKilometraje(
 
         if (vehiculos.isEmpty()) {
             Spacer(modifier = Modifier.height(8.dp))
+
             Text(
                 text = "Primero debes registrar un vehículo en Configuración.",
                 color = Color(0xFFB71C1C)
@@ -177,7 +246,7 @@ fun PantallaKilometraje(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Información del vehículo seleccionado
+        // Tarjeta con la información del vehículo.
         vehiculoSeleccionado?.let { vehiculo ->
 
             Card(
@@ -186,6 +255,7 @@ fun PantallaKilometraje(
                     containerColor = Color(0xFFE3F2FD)
                 )
             ) {
+
                 Column(
                     modifier = Modifier.padding(18.dp)
                 ) {
@@ -216,12 +286,7 @@ fun PantallaKilometraje(
 
         OutlinedTextField(
             value = kilometrosRecorridos,
-            onValueChange = {
-                kilometrosRecorridos = it.filter { caracter ->
-                    caracter.isDigit()
-                }
-                mensajeError = ""
-            },
+            onValueChange = onKilometrosChange,
             label = {
                 Text("Kilómetros recorridos hoy")
             },
@@ -238,8 +303,9 @@ fun PantallaKilometraje(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Vista previa del nuevo kilometraje
-        if (nuevoKilometraje != null &&
+        // Vista previa del kilometraje calculado.
+        if (
+            nuevoKilometraje != null &&
             vehiculoSeleccionado != null
         ) {
 
@@ -249,6 +315,7 @@ fun PantallaKilometraje(
                     containerColor = Color(0xFFE8F5E9)
                 )
             ) {
+
                 Column(
                     modifier = Modifier.padding(18.dp)
                 ) {
@@ -286,33 +353,7 @@ fun PantallaKilometraje(
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(
-            onClick = {
-
-                val vehiculo = vehiculoSeleccionado
-                val recorridos = kilometrosNuevos
-
-                when {
-                    vehiculo == null -> {
-                        mensajeError = "Selecciona un vehículo."
-                    }
-
-                    recorridos == null || recorridos <= 0 -> {
-                        mensajeError = "Ingresa una cantidad válida mayor a cero."
-                    }
-
-                    nuevoKilometraje == null ||
-                            nuevoKilometraje > Int.MAX_VALUE -> {
-                        mensajeError = "El kilometraje supera el límite permitido."
-                    }
-
-                    else -> {
-                        onGuardarKilometraje(
-                            vehiculo.id,
-                            nuevoKilometraje.toInt()
-                        )
-                    }
-                }
-            },
+            onClick = onGuardar,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(55.dp),
