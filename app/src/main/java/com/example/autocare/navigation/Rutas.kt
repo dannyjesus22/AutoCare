@@ -14,6 +14,16 @@ object Rutas {
 
     const val VEHICULO = "vehiculo"
 
+
+    // Ruta que recibe el ID del vehículo que vamos a editar.
+    const val EDITAR_VEHICULO = "vehiculo/{vehiculoId}"
+
+    // Construye la ruta con el ID real del vehículo.
+    fun editarVehiculo(vehiculoId: Int): String {
+        return "vehiculo/$vehiculoId"
+    }
+
+
     const val KILOMETRAJE = "kilometraje"
 
     const val MANTENIMIENTO = "mantenimiento"

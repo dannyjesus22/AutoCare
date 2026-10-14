@@ -39,11 +39,6 @@ fun NavegacionPrueba() {
     // Controlador de navegación de AutoCare.
     val navController = rememberNavController()
 
-    // Guarda temporalmente el vehículo seleccionado para editar.
-    // Si es null, registraremos un vehículo nuevo.
-    var vehiculoSeleccionado by remember {
-        mutableStateOf<Vehiculo?>(null)
-    }
 
     // Contenedor de las pantallas de AutoCare.
     NavHost(
@@ -246,12 +241,12 @@ fun NavegacionPrueba() {
                     navController.popBackStack()
                 },
                 onAgregarVehiculo = {
-                    vehiculoSeleccionado = null
                     navController.navigate(Rutas.VEHICULO)
                 },
                 onEditarVehiculo = { vehiculo ->
-                    vehiculoSeleccionado = vehiculo
-                    navController.navigate(Rutas.VEHICULO)
+                    navController.navigate(
+                        Rutas.editarVehiculo(vehiculo.id)
+                    )
                 },
                 vehiculoViewModel = vehiculoViewModel
             )
@@ -271,13 +266,56 @@ fun NavegacionPrueba() {
 
             VehicleRegisterScreen(
                 onVolver = {
-                    vehiculoSeleccionado = null
+
                     navController.popBackStack()
                 },
                 vehiculoViewModel = vehiculoViewModel,
-                vehiculoEditar = vehiculoSeleccionado
+                vehiculoEditar = null
             )
         }
+
+        // 10. Editar un vehículo utilizando su ID.
+        composable(Rutas.EDITAR_VEHICULO) { entrada ->
+
+            // Recuperamos el ID enviado por NavController.
+            val vehiculoId = entrada.arguments
+                ?.getString("vehiculoId")
+                ?.toIntOrNull()
+
+            val contexto = LocalContext.current.applicationContext
+            val aplicacion = contexto as AplicacionAutoCare
+
+            // Creamos el ViewModel con nuestra Factory.
+            val vehiculoViewModel: VehiculoViewModel = viewModel(
+                factory = VehiculoViewModelFactory(
+                    aplicacion.vehiculoRepository
+                )
+            )
+
+            // Consultamos los datos del vehículo en Room.
+            var vehiculoEditar by remember(vehiculoId) {
+                mutableStateOf<Vehiculo?>(null)
+            }
+
+            LaunchedEffect(vehiculoId) {
+                vehiculoEditar = vehiculoId?.let { id ->
+                    vehiculoViewModel.obtenerVehiculoPorId(id)
+                }
+            }
+
+            // Mostramos el formulario cuando tenemos el vehículo.
+            if (vehiculoEditar != null) {
+
+                VehicleRegisterScreen(
+                    onVolver = {
+                        navController.popBackStack()
+                    },
+                    vehiculoViewModel = vehiculoViewModel,
+                    vehiculoEditar = vehiculoEditar
+                )
+            }
+        }
+
 
     }
 }
