@@ -16,6 +16,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 
 import com.example.autocare.AplicacionAutoCare
+import com.example.autocare.data.Mantenimiento
 import com.example.autocare.data.Vehiculo
 
 import com.example.autocare.screens.HomeScreen
@@ -31,6 +32,8 @@ import com.example.autocare.screens.VehicleRegisterScreen
 import com.example.autocare.viewmodel.HistorialUiState
 import com.example.autocare.viewmodel.HistorialViewModel
 import com.example.autocare.viewmodel.HistorialViewModelFactory
+import com.example.autocare.viewmodel.MantenimientoViewModel
+import com.example.autocare.viewmodel.MantenimientoViewModelFactory
 import com.example.autocare.viewmodel.RegistroKilometrajeViewModel
 import com.example.autocare.viewmodel.RegistroKilometrajeViewModelFactory
 import com.example.autocare.viewmodel.VehiculoViewModel
@@ -45,32 +48,28 @@ import kotlinx.coroutines.launch
 fun NavegacionPrueba() {
 
     val navController = rememberNavController()
-
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
-    val aplicacion = LocalContext.current.applicationContext
-            as AplicacionAutoCare
+    val aplicacion =
+        context.applicationContext as AplicacionAutoCare
 
-    // Consultar el usuario conectado.
+    // ID del usuario que inició sesión.
     val usuarioActivoId by aplicacion.configuracionDataStore
         .usuarioActivoId
         .collectAsStateWithLifecycle(initialValue = null)
 
-    // Consultar solamente los vehículos del usuario activo.
+    // Obtener únicamente los vehículos del usuario activo.
     val vehiculosDelUsuario = remember(
         aplicacion,
         usuarioActivoId
     ) {
-
         val id = usuarioActivoId
 
         if (id != null) {
-
             aplicacion.vehiculoRepository
                 .obtenerVehiculosPorUsuario(id)
-
         } else {
-
             flowOf(emptyList<Vehiculo>())
         }
     }
@@ -107,12 +106,9 @@ fun NavegacionPrueba() {
                 onIniciarSesion = { usuarioId ->
 
                     scope.launch {
-
-                        // Guardar el usuario autenticado.
                         aplicacion.configuracionDataStore
                             .guardarUsuarioActivo(usuarioId)
 
-                        // Entrar al inicio y quitar Login del historial.
                         navController.navigate(Rutas.INICIO) {
                             popUpTo(Rutas.LOGIN) {
                                 inclusive = true
@@ -139,7 +135,6 @@ fun NavegacionPrueba() {
 
             RegisterScreen(
                 onIrLogin = {
-
                     navController.navigate(Rutas.LOGIN) {
                         popUpTo(Rutas.REGISTRO) {
                             inclusive = true
@@ -175,7 +170,7 @@ fun NavegacionPrueba() {
             )
         }
 
-        // 5. KILOMETRAJE
+        // 5. REGISTRO DE KILOMETRAJE
         composable(Rutas.KILOMETRAJE) {
 
             val vehiculos by vehiculosDelUsuario
@@ -187,6 +182,13 @@ fun NavegacionPrueba() {
                 viewModel(
                     factory = RegistroKilometrajeViewModelFactory(
                         aplicacion.registroKilometrajeRepository
+                    )
+                )
+
+            val mantenimientoViewModel: MantenimientoViewModel =
+                viewModel(
+                    factory = MantenimientoViewModelFactory(
+                        aplicacion.mantenimientoRepository
                     )
                 )
 
@@ -203,8 +205,10 @@ fun NavegacionPrueba() {
                 vehiculos = vehiculos,
                 onGuardarKilometraje = { vehiculoId, kilometrajeActual ->
 
+                    // Comprobar que el vehículo sea del usuario.
                     val esVehiculoPropio = vehiculos.any {
-                        it.id == vehiculoId
+                        it.id == vehiculoId &&
+                                it.usuarioId == usuarioActivoId
                     }
 
                     if (
@@ -212,10 +216,19 @@ fun NavegacionPrueba() {
                         esVehiculoPropio
                     ) {
 
+                        // Guardar el nuevo kilometraje.
                         kilometrajeViewModel.guardarKilometraje(
                             vehiculoId = vehiculoId,
                             kilometrajeActual = kilometrajeActual
                         )
+
+                        // Comprobar alertas de mantenimiento.
+                        mantenimientoViewModel
+                            .verificarNotificacionKilometraje(
+                                vehiculoId = vehiculoId,
+                                nuevoKilometraje = kilometrajeActual,
+                                context = context
+                            )
                     }
                 }
             )
@@ -233,6 +246,7 @@ fun NavegacionPrueba() {
                 mutableStateOf<Int?>(null)
             }
 
+            // Solo permitir seleccionar vehículos propios.
             val vehiculoId = vehiculos.find {
                 it.id == vehiculoSeleccionadoId
             }?.id ?: vehiculos.firstOrNull()?.id
@@ -243,9 +257,16 @@ fun NavegacionPrueba() {
                 )
             )
 
+            val mantenimientoViewModel: MantenimientoViewModel =
+                viewModel(
+                    factory = MantenimientoViewModelFactory(
+                        aplicacion.mantenimientoRepository
+                    )
+                )
+
+            // Cargar el historial de kilometraje.
             LaunchedEffect(vehiculoId, usuarioActivoId) {
 
-                // Limpiar los registros anteriores.
                 historialViewModel.limpiarHistorial()
 
                 val idUsuario = usuarioActivoId
@@ -254,7 +275,6 @@ fun NavegacionPrueba() {
                     vehiculoId != null &&
                     idUsuario != null
                 ) {
-
                     historialViewModel.cargarHistorial(
                         vehiculoId = vehiculoId,
                         usuarioId = idUsuario
@@ -266,15 +286,30 @@ fun NavegacionPrueba() {
                 .collectAsStateWithLifecycle()
 
             val registros = when (val estado = estadoHistorial) {
+                is HistorialUiState.Success -> estado.registros
+                else -> emptyList()
+            }
 
-                is HistorialUiState.Success -> {
-                    estado.registros
-                }
-
-                else -> {
-                    emptyList()
+            // Obtener mantenimientos del vehículo seleccionado.
+            val flujoMantenimientos = remember(
+                vehiculoId,
+                usuarioActivoId
+            ) {
+                if (
+                    vehiculoId != null &&
+                    usuarioActivoId != null
+                ) {
+                    mantenimientoViewModel
+                        .obtenerMantenimientosPorVehiculo(vehiculoId)
+                } else {
+                    flowOf(emptyList<Mantenimiento>())
                 }
             }
+
+            val registrosMantenimiento by flujoMantenimientos
+                .collectAsStateWithLifecycle(
+                    initialValue = emptyList()
+                )
 
             PantallaHistorial(
                 onVolver = {
@@ -285,23 +320,54 @@ fun NavegacionPrueba() {
                     vehiculoId != null &&
                     usuarioActivoId != null
                 ) {
-                    registros
+                    registros.filter {
+                        it.vehiculoId == vehiculoId
+                    }
+                } else {
+                    emptyList()
+                },
+                registrosMantenimiento = if (
+                    vehiculoId != null &&
+                    usuarioActivoId != null
+                ) {
+                    registrosMantenimiento.filter {
+                        it.vehiculoId == vehiculoId
+                    }
                 } else {
                     emptyList()
                 },
                 vehiculoSeleccionadoId = vehiculoId,
                 onSeleccionarVehiculo = { id ->
-                    vehiculoSeleccionadoId = id
+                    if (vehiculos.any { it.id == id }) {
+                        vehiculoSeleccionadoId = id
+                    }
                 },
                 estadoHistorial = estadoHistorial
             )
         }
 
         // 7. MANTENIMIENTO
-        // Se conserva la pantalla de Maykol.
         composable(Rutas.MANTENIMIENTO) {
 
+            val vehiculos by vehiculosDelUsuario
+                .collectAsStateWithLifecycle(
+                    initialValue = emptyList()
+                )
+
+            val mantenimientoViewModel: MantenimientoViewModel =
+                viewModel(
+                    factory = MantenimientoViewModelFactory(
+                        aplicacion.mantenimientoRepository
+                    )
+                )
+
             PantallaMantenimiento(
+                vehiculos = if (usuarioActivoId != null) {
+                    vehiculos
+                } else {
+                    emptyList()
+                },
+                viewModel = mantenimientoViewModel,
                 onVolver = {
                     navController.popBackStack()
                 }
@@ -328,7 +394,6 @@ fun NavegacionPrueba() {
                     navController.popBackStack()
                 },
                 onAgregarVehiculo = {
-
                     if (usuarioActivoId != null) {
                         navController.navigate(Rutas.VEHICULO)
                     }
@@ -339,34 +404,25 @@ fun NavegacionPrueba() {
                         usuarioActivoId != null &&
                         vehiculo.usuarioId == usuarioActivoId
                     ) {
-
                         navController.navigate(
                             Rutas.editarVehiculo(vehiculo.id)
                         )
                     }
                 },
-
-                // NUEVO: cerrar sesión sin borrar la base de datos.
                 onCerrarSesion = {
 
                     scope.launch {
-
-                        // Eliminar solamente el ID de sesión.
                         aplicacion.configuracionDataStore
                             .cerrarSesion()
 
-                        // Regresar al Login y limpiar las pantallas.
                         navController.navigate(Rutas.LOGIN) {
-
                             popUpTo(Rutas.INICIO) {
                                 inclusive = true
                             }
-
                             launchSingleTop = true
                         }
                     }
                 },
-
                 vehiculoViewModel = vehiculoViewModel
             )
         }
@@ -387,7 +443,6 @@ fun NavegacionPrueba() {
             }
 
             if (usuarioActivoId != null) {
-
                 VehicleRegisterScreen(
                     onVolver = {
                         navController.popBackStack()
@@ -437,11 +492,9 @@ fun NavegacionPrueba() {
                     vehiculoId != null &&
                     usuarioActivoId != null
                 ) {
-
                     vehiculoViewModel.obtenerVehiculoPorId(
                         vehiculoId
                     )
-
                 } else {
                     null
                 }
@@ -451,7 +504,6 @@ fun NavegacionPrueba() {
                 usuarioActivoId != null &&
                 vehiculoEditar?.usuarioId == usuarioActivoId
             ) {
-
                 VehicleRegisterScreen(
                     onVolver = {
                         navController.popBackStack()

@@ -1,19 +1,51 @@
-
 package com.example.autocare.screens
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.autocare.data.Mantenimiento
 import com.example.autocare.data.RegistroKilometraje
 import com.example.autocare.data.Vehiculo
 import com.example.autocare.viewmodel.HistorialUiState
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -21,29 +53,19 @@ fun PantallaHistorial(
     onVolver: () -> Unit,
     vehiculos: List<Vehiculo>,
     registros: List<RegistroKilometraje>,
+    registrosMantenimiento: List<Mantenimiento> = emptyList(),
     vehiculoSeleccionadoId: Int?,
     onSeleccionarVehiculo: (Int) -> Unit,
     estadoHistorial: HistorialUiState,
     onGenerarPdf: () -> Unit = {}
 ) {
+    var pestanaSeleccionada by remember { mutableIntStateOf(0) }
 
-    // Controla la pestaña que estamos visualizando.
-    // 0 = Kilometraje
-    // 1 = Mantenimiento
-    var pestanaSeleccionada by remember {
-        mutableIntStateOf(0)
-    }
-
-    // Buscamos el vehículo seleccionado.
-    // Si no existe una selección, usamos el primero.
     val vehiculoSeleccionado = vehiculos.find {
         it.id == vehiculoSeleccionadoId
     } ?: vehiculos.firstOrNull()
 
-    // Controla si el menú de vehículos está abierto.
-    var menuAbierto by remember {
-        mutableStateOf(false)
-    }
+    var menuAbierto by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -51,15 +73,10 @@ fun PantallaHistorial(
             .verticalScroll(rememberScrollState())
             .padding(24.dp)
     ) {
-
-        // Botón para regresar al inicio.
-        TextButton(
-            onClick = onVolver
-        ) {
+        TextButton(onClick = onVolver) {
             Text("← Volver")
         }
 
-        // Título principal.
         Text(
             text = "Historial",
             fontSize = 28.sp,
@@ -73,70 +90,38 @@ fun PantallaHistorial(
             color = Color.Gray
         )
 
-        Spacer(
-            modifier = Modifier.height(20.dp)
-        )
+        Spacer(modifier = Modifier.height(20.dp))
 
-        // Si no existen vehículos, mostramos un mensaje.
         if (vehiculos.isEmpty()) {
-
             Text(
                 text = "No tienes vehículos registrados.",
                 color = Color.Gray
             )
-
         } else {
-
-            // Menú para seleccionar un vehículo.
             ExposedDropdownMenuBox(
                 expanded = menuAbierto,
-                onExpandedChange = {
-                    menuAbierto = !menuAbierto
-                }
+                onExpandedChange = { menuAbierto = !menuAbierto }
             ) {
-
                 OutlinedTextField(
-                    value = vehiculoSeleccionado?.let {
-                        "${it.marca} ${it.modelo}"
-                    } ?: "",
+                    value = vehiculoSeleccionado?.let { "${it.marca} ${it.modelo}" } ?: "",
                     onValueChange = {},
                     readOnly = true,
-                    label = {
-                        Text("Seleccionar vehículo")
-                    },
-                    trailingIcon = {
-                        ExposedDropdownMenuDefaults.TrailingIcon(
-                            expanded = menuAbierto
-                        )
-                    },
+                    label = { Text("Seleccionar vehículo") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = menuAbierto) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .menuAnchor(
-                            ExposedDropdownMenuAnchorType.PrimaryNotEditable
-                        )
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                 )
 
                 ExposedDropdownMenu(
                     expanded = menuAbierto,
-                    onDismissRequest = {
-                        menuAbierto = false
-                    }
+                    onDismissRequest = { menuAbierto = false }
                 ) {
-
                     vehiculos.forEach { vehiculo ->
-
                         DropdownMenuItem(
-                            text = {
-                                Text(
-                                    "${vehiculo.marca} ${vehiculo.modelo} ${vehiculo.anio}"
-                                )
-                            },
+                            text = { Text("${vehiculo.marca} ${vehiculo.modelo} ${vehiculo.anio}") },
                             onClick = {
-
-                                // Avisamos a NavegacionApp
-                                // qué vehículo seleccionó el usuario.
                                 onSeleccionarVehiculo(vehiculo.id)
-
                                 menuAbierto = false
                             }
                         )
@@ -144,106 +129,54 @@ fun PantallaHistorial(
                 }
             }
 
-            Spacer(
-                modifier = Modifier.height(15.dp)
-            )
+            Spacer(modifier = Modifier.height(15.dp))
 
-            // Tarjeta con datos reales del vehículo.
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFFE3F2FD)
-                )
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD))
             ) {
-
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
-
+                Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = vehiculoSeleccionado?.let {
-                            "${it.marca} ${it.modelo} ${it.anio}"
-                        } ?: "Vehículo no seleccionado",
+                        text = vehiculoSeleccionado?.let { "${it.marca} ${it.modelo} ${it.anio}" } ?: "Vehículo no seleccionado",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF0D47A1)
                     )
-
-                    Spacer(
-                        modifier = Modifier.height(5.dp)
-                    )
-
+                    Spacer(modifier = Modifier.height(5.dp))
                     Text(
-                        text = "Kilometraje actual: " +
-                                "${vehiculoSeleccionado?.kilometraje ?: 0} km"
+                        text = "Kilometraje actual: ${vehiculoSeleccionado?.kilometraje ?: 0} km"
                     )
                 }
             }
 
-            Spacer(
-                modifier = Modifier.height(20.dp)
-            )
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // Pestañas del historial.
-            TabRow(
-                selectedTabIndex = pestanaSeleccionada
-            ) {
-
+            TabRow(selectedTabIndex = pestanaSeleccionada) {
                 Tab(
                     selected = pestanaSeleccionada == 0,
-                    onClick = {
-                        pestanaSeleccionada = 0
-                    },
-                    text = {
-                        Text("Kilometraje")
-                    }
+                    onClick = { pestanaSeleccionada = 0 },
+                    text = { Text("Kilometraje") }
                 )
-
                 Tab(
                     selected = pestanaSeleccionada == 1,
-                    onClick = {
-                        pestanaSeleccionada = 1
-                    },
-                    text = {
-                        Text("Mantenimiento")
-                    }
+                    onClick = { pestanaSeleccionada = 1 },
+                    text = { Text("Mantenimiento") }
                 )
             }
 
-            Spacer(
-                modifier = Modifier.height(15.dp)
-            )
+            Spacer(modifier = Modifier.height(15.dp))
 
-            // Mostramos el contenido según la pestaña.
             when (pestanaSeleccionada) {
-
-
                 0 -> {
-
-                    // Mostramos el contenido según el estado del ViewModel.
                     when (val estado = estadoHistorial) {
-
-                        is HistorialUiState.Loading -> {
-
-                            // Indicador mientras se consultan los registros.
-                            CircularProgressIndicator()
-                        }
-
+                        is HistorialUiState.Loading -> CircularProgressIndicator()
                         is HistorialUiState.Success -> {
-
-                            // Mostramos los registros del vehículo seleccionado.
                             val registrosDelVehiculo = estado.registros.filter {
                                 it.vehiculoId == vehiculoSeleccionado?.id
                             }
-
-                            HistorialKilometraje(
-                                registros = registrosDelVehiculo
-                            )
+                            SeccionHistorialKilometraje(registros = registrosDelVehiculo)
                         }
-
                         is HistorialUiState.Error -> {
-
-                            // Mensaje cuando ocurre un error.
                             Text(
                                 text = estado.mensaje,
                                 color = MaterialTheme.colorScheme.error
@@ -252,38 +185,163 @@ fun PantallaHistorial(
                     }
                 }
 
-
                 1 -> {
-
-                    // Pendiente de integrar el trabajo de Maykol.
-                    Text(
-                        text = "Próximamente mostraremos aquí " +
-                                "el historial de mantenimiento.",
-                        color = Color.Gray
-                    )
+                    val mantenimientosDelVehiculo = registrosMantenimiento.filter {
+                        it.vehiculoId == vehiculoSeleccionado?.id
+                    }
+                    SeccionHistorialMantenimiento(mantenimientos = mantenimientosDelVehiculo)
                 }
             }
 
-            Spacer(
-                modifier = Modifier.height(20.dp)
-            )
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // Botón reservado para la generación del PDF.
             Button(
                 onClick = onGenerarPdf,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(55.dp),
                 enabled = false,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF0D47A1)
-                )
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D47A1))
             ) {
+                Text(text = "Generar reporte PDF", fontSize = 17.sp)
+            }
+        }
+    }
+}
 
-                Text(
-                    text = "Generar reporte PDF",
-                    fontSize = 17.sp
-                )
+@Composable
+fun SeccionHistorialKilometraje(registros: List<RegistroKilometraje>) {
+    if (registros.isEmpty()) {
+        Text("No hay registros de kilometraje.", color = Color.Gray)
+    } else {
+        // Ordenamos los registros cronológicamente de más reciente a más antiguo
+        val registrosOrdenados = remember(registros) { registros.sortedByDescending { it.id } }
+        val formatoFechaHora = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()) }
+
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            registrosOrdenados.forEachIndexed { index, reg ->
+                val regAnterior = registrosOrdenados.getOrNull(index + 1)
+                val recorrido = if (regAnterior != null) {
+                    reg.kilometrajeActual - regAnterior.kilometrajeActual
+                } else {
+                    0
+                }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp)
+                    ) {
+                        Text(
+                            text = formatoFechaHora.format(Date(reg.fecha)),
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1B5E20)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        if (recorrido > 0) {
+                            Text(
+                                text = "Recorrido: $recorrido km",
+                                fontSize = 13.sp,
+                                color = Color.DarkGray
+                            )
+                        }
+
+                        Text(
+                            text = "Kilometraje total: ${reg.kilometrajeActual} km",
+                            fontSize = 13.sp,
+                            color = Color.DarkGray
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SeccionHistorialMantenimiento(mantenimientos: List<Mantenimiento>) {
+    if (mantenimientos.isEmpty()) {
+        Text(
+            text = "No hay registros de mantenimiento para este vehículo.",
+            color = Color.Gray,
+            modifier = Modifier.padding(vertical = 12.dp)
+        )
+    } else {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            mantenimientos.forEach { mantenimiento ->
+                val partesNotas = mantenimiento.notas.split(" - ", limit = 2)
+                val taller = if (partesNotas.size > 1) partesNotas[0] else ""
+                val observacion = if (partesNotas.size > 1) partesNotas[1] else mantenimiento.notas
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFEDF4FC))
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = mantenimiento.titulo,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF002B66)
+                            )
+                            Text(
+                                text = "📅 ${mantenimiento.fecha}",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF0066FF)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Text(
+                            text = "Realizado a los: ${mantenimiento.kilometrajeRealizado} km",
+                            fontSize = 13.sp,
+                            color = Color.DarkGray
+                        )
+
+                        if (mantenimiento.costo > 0) {
+                            Text(
+                                text = "Costo: $${mantenimiento.costo}",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF2E7D32)
+                            )
+                        }
+
+                        if (taller.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "🏭 Taller: $taller",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF002B66)
+                            )
+                        }
+
+                        if (observacion.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "📝 Observación: $observacion",
+                                fontSize = 12.sp,
+                                color = Color.Gray
+                            )
+                        }
+                    }
+                }
             }
         }
     }
