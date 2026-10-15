@@ -48,7 +48,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
-// Permite saber cuándo DataStore terminó de leer la sesión.
 private data class SesionCargada(val usuarioId: Int?)
 
 @Composable
@@ -61,7 +60,7 @@ fun NavegacionPrueba() {
     val aplicacion =
         context.applicationContext as AplicacionAutoCare
 
-    // Leer la sesión guardada en DataStore.
+    // Leer la sesión guardada.
     val estadoSesion by remember(aplicacion) {
         aplicacion.configuracionDataStore.usuarioActivoId
             .map { id -> SesionCargada(id) }
@@ -70,7 +69,13 @@ fun NavegacionPrueba() {
     val sesionCargada = estadoSesion != null
     val usuarioActivoId = estadoSesion?.usuarioId
 
-    // Obtener solo los vehículos del usuario activo.
+    // Selección compartida entre Inicio e Historial.
+    // Se reinicia cuando cambia el usuario.
+    var vehiculoSeleccionadoId by remember(usuarioActivoId) {
+        mutableStateOf<Int?>(null)
+    }
+
+    // Obtener los vehículos del usuario activo.
     val vehiculosDelUsuario = remember(
         aplicacion,
         usuarioActivoId
@@ -180,6 +185,11 @@ fun NavegacionPrueba() {
                     initialValue = emptyList()
                 )
 
+            // Si el vehículo fue eliminado, usar el primero.
+            val vehiculoIdActual = vehiculos.find {
+                it.id == vehiculoSeleccionadoId
+            }?.id ?: vehiculos.firstOrNull()?.id
+
             val mantenimientoViewModel: MantenimientoViewModel =
                 viewModel(
                     factory = MantenimientoViewModelFactory(
@@ -187,25 +197,19 @@ fun NavegacionPrueba() {
                     )
                 )
 
-            // Obtener mantenimientos de los vehículos propios.
-            val idsVehiculos = vehiculos.map { it.id }
-
+            // Consultar los mantenimientos del vehículo activo.
             val flujoMantenimientos = remember(
-                idsVehiculos,
+                vehiculoIdActual,
                 usuarioActivoId
             ) {
                 if (
                     usuarioActivoId != null &&
-                    idsVehiculos.isNotEmpty()
+                    vehiculoIdActual != null
                 ) {
-                    kotlinx.coroutines.flow.combine(
-                        idsVehiculos.map { id ->
-                            mantenimientoViewModel
-                                .obtenerMantenimientosPorVehiculo(id)
-                        }
-                    ) { listas ->
-                        listas.flatMap { it }
-                    }
+                    mantenimientoViewModel
+                        .obtenerMantenimientosPorVehiculo(
+                            vehiculoIdActual
+                        )
                 } else {
                     flowOf(emptyList<Mantenimiento>())
                 }
@@ -234,7 +238,15 @@ fun NavegacionPrueba() {
                 },
 
                 vehiculos = vehiculos,
-                mantenimientos = mantenimientos
+                mantenimientos = mantenimientos,
+
+                vehiculoSeleccionadoId = vehiculoIdActual,
+
+                onSeleccionarVehiculo = { id ->
+                    if (vehiculos.any { it.id == id }) {
+                        vehiculoSeleccionadoId = id
+                    }
+                }
             )
         }
 
@@ -266,6 +278,7 @@ fun NavegacionPrueba() {
                 )
             }
 
+
             PantallaKilometraje(
                 onVolver = {
                     navController.popBackStack()
@@ -273,8 +286,14 @@ fun NavegacionPrueba() {
 
                 vehiculos = vehiculos,
 
+                // Recibir el vehículo seleccionado desde Inicio.
+                vehiculoSeleccionadoId = vehiculos.find {
+                    it.id == vehiculoSeleccionadoId
+                }?.id ?: vehiculos.firstOrNull()?.id,
+
                 onGuardarKilometraje = {
-                        vehiculoId, kilometrajeActual ->
+
+                    vehiculoId, kilometrajeActual ->
 
                     val esVehiculoPropio = vehiculos.any {
                         it.id == vehiculoId &&
@@ -310,10 +329,7 @@ fun NavegacionPrueba() {
                     initialValue = emptyList()
                 )
 
-            var vehiculoSeleccionadoId by remember {
-                mutableStateOf<Int?>(null)
-            }
-
+            // Utilizar la selección compartida con Inicio.
             val vehiculoId = vehiculos.find {
                 it.id == vehiculoSeleccionadoId
             }?.id ?: vehiculos.firstOrNull()?.id
@@ -358,7 +374,6 @@ fun NavegacionPrueba() {
                 else -> emptyList()
             }
 
-            // Mantenimientos del vehículo seleccionado.
             val flujoMantenimientos = remember(
                 vehiculoId,
                 usuarioActivoId
@@ -368,7 +383,9 @@ fun NavegacionPrueba() {
                     usuarioActivoId != null
                 ) {
                     mantenimientoViewModel
-                        .obtenerMantenimientosPorVehiculo(vehiculoId)
+                        .obtenerMantenimientosPorVehiculo(
+                            vehiculoId
+                        )
                 } else {
                     flowOf(emptyList<Mantenimiento>())
                 }
@@ -487,8 +504,8 @@ fun NavegacionPrueba() {
                     }
                 },
 
-
-                onCambiarContrasena = { actual, nueva, confirmacion ->
+                onCambiarContrasena = {
+                        actual, nueva, confirmacion ->
 
                     val id = usuarioActivoId
 

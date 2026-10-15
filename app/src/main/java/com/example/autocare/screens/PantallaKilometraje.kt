@@ -15,59 +15,40 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.autocare.data.Vehiculo
 
-// STATEFUL: administra los estados y valida el formulario.
+// STATEFUL: administra el formulario y sus validaciones.
 @Composable
 fun PantallaKilometraje(
     onVolver: () -> Unit,
     vehiculos: List<Vehiculo> = emptyList(),
-    onGuardarKilometraje: (Int, Int) -> Unit = { _, _ -> }
+    onGuardarKilometraje: (Int, Int) -> Unit = { _, _ -> },
+    vehiculoSeleccionadoId: Int? = null
 ) {
 
-    // Guardamos el ID del vehículo seleccionado.
-    var vehiculoSeleccionadoId by remember {
-        mutableStateOf<Int?>(null)
-    }
-
-    // Obtenemos el vehículo actualizado de la lista.
+    // El vehículo se elige desde Inicio.
     val vehiculoSeleccionado = vehiculos.find {
         it.id == vehiculoSeleccionadoId
     }
 
-    // Kilómetros recorridos durante el día.
-    var kilometrosRecorridos by remember {
+    var kilometrosRecorridos by remember(
+        vehiculoSeleccionadoId
+    ) {
         mutableStateOf("")
     }
 
-    // Mensaje para las validaciones.
-    var mensajeError by remember {
+    var mensajeError by remember(
+        vehiculoSeleccionadoId
+    ) {
         mutableStateOf("")
     }
 
-    // Seleccionar automáticamente si existe un solo vehículo.
-    LaunchedEffect(vehiculos) {
-        if (
-            vehiculos.size == 1 &&
-            vehiculoSeleccionadoId == null
-        ) {
-            vehiculoSeleccionadoId = vehiculos.first().id
-        }
-
-        // Limpiar la selección si el vehículo ya no existe.
-        if (
-            vehiculoSeleccionadoId != null &&
-            vehiculos.none { it.id == vehiculoSeleccionadoId }
-        ) {
-            vehiculoSeleccionadoId = null
-        }
-    }
-
-    // Convertir el texto a número.
+    // Convertir los kilómetros ingresados a número.
     val kilometrosNuevos = kilometrosRecorridos.toIntOrNull()
 
-    // Kilometraje guardado actualmente.
-    val kilometrajeActual = vehiculoSeleccionado?.kilometraje ?: 0
+    // Kilometraje actual del vehículo.
+    val kilometrajeActual =
+        vehiculoSeleccionado?.kilometraje ?: 0
 
-    // Calcular el nuevo kilometraje sin desbordar Int.
+    // Sumar sin provocar desbordamiento de Int.
     val nuevoKilometraje = kilometrosNuevos?.let {
         if (it >= 0) {
             kilometrajeActual.toLong() + it.toLong()
@@ -76,32 +57,30 @@ fun PantallaKilometraje(
         }
     }
 
-    // STATE HOISTING:
-    // Enviamos datos y funciones al componente Stateless.
+    // STATE HOISTING: enviamos datos al componente Stateless.
     ContenidoKilometraje(
         onVolver = onVolver,
-        vehiculos = vehiculos,
-        vehiculoSeleccionadoId = vehiculoSeleccionadoId,
-        onSeleccionarVehiculo = { id ->
-            vehiculoSeleccionadoId = id
-            kilometrosRecorridos = ""
-            mensajeError = ""
-        },
         vehiculoSeleccionado = vehiculoSeleccionado,
         kilometrosRecorridos = kilometrosRecorridos,
+
         onKilometrosChange = { texto ->
-            kilometrosRecorridos = texto.filter { it.isDigit() }
+            kilometrosRecorridos = texto.filter {
+                it.isDigit()
+            }
             mensajeError = ""
         },
+
         nuevoKilometraje = nuevoKilometraje,
         mensajeError = mensajeError,
+
         onGuardar = {
             val vehiculo = vehiculoSeleccionado
             val recorridos = kilometrosNuevos
 
             when {
                 vehiculo == null -> {
-                    mensajeError = "Selecciona un vehículo."
+                    mensajeError =
+                        "No hay un vehículo seleccionado."
                 }
 
                 recorridos == null || recorridos <= 0 -> {
@@ -120,21 +99,20 @@ fun PantallaKilometraje(
                         vehiculo.id,
                         nuevoKilometraje.toInt()
                     )
+
+                    // Limpiar el formulario después de guardar.
+                    kilometrosRecorridos = ""
+                    mensajeError = ""
                 }
             }
         }
     )
 }
 
-
-// STATELESS: recibe los datos y muestra la interfaz.
-@OptIn(ExperimentalMaterial3Api::class)
+// STATELESS: muestra la información que recibe.
 @Composable
 fun ContenidoKilometraje(
     onVolver: () -> Unit,
-    vehiculos: List<Vehiculo>,
-    vehiculoSeleccionadoId: Int?,
-    onSeleccionarVehiculo: (Int) -> Unit,
     vehiculoSeleccionado: Vehiculo?,
     kilometrosRecorridos: String,
     onKilometrosChange: (String) -> Unit,
@@ -142,11 +120,6 @@ fun ContenidoKilometraje(
     mensajeError: String,
     onGuardar: () -> Unit
 ) {
-
-    // Estado visual local: solo controla si el menú está abierto.
-    var menuExpandido by remember {
-        mutableStateOf(false)
-    }
 
     Column(
         modifier = Modifier
@@ -175,79 +148,14 @@ fun ContenidoKilometraje(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Selecciona tu vehículo",
+            text = "Vehículo seleccionado",
             fontWeight = FontWeight.Bold
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        ExposedDropdownMenuBox(
-            expanded = menuExpandido,
-            onExpandedChange = {
-                if (vehiculos.isNotEmpty()) {
-                    menuExpandido = !menuExpandido
-                }
-            }
-        ) {
-
-            OutlinedTextField(
-                value = vehiculoSeleccionado?.let {
-                    "${it.marca} ${it.modelo} ${it.anio}"
-                } ?: "",
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Vehículo") },
-                placeholder = {
-                    Text("Selecciona un vehículo")
-                },
-                trailingIcon = {
-                    ExposedDropdownMenuDefaults.TrailingIcon(
-                        expanded = menuExpandido
-                    )
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor(
-                        ExposedDropdownMenuAnchorType.PrimaryNotEditable
-                    )
-            )
-
-            ExposedDropdownMenu(
-                expanded = menuExpandido,
-                onDismissRequest = {
-                    menuExpandido = false
-                }
-            ) {
-
-                vehiculos.forEach { vehiculo ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                "${vehiculo.marca} ${vehiculo.modelo} ${vehiculo.anio}"
-                            )
-                        },
-                        onClick = {
-                            onSeleccionarVehiculo(vehiculo.id)
-                            menuExpandido = false
-                        }
-                    )
-                }
-            }
-        }
-
-        if (vehiculos.isEmpty()) {
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "Primero debes registrar un vehículo en Configuración.",
-                color = Color(0xFFB71C1C)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Tarjeta con la información del vehículo.
-        vehiculoSeleccionado?.let { vehiculo ->
+        // Mostrar el vehículo sin menú desplegable.
+        if (vehiculoSeleccionado != null) {
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -261,24 +169,41 @@ fun ContenidoKilometraje(
                 ) {
 
                     Text(
-                        text = "${vehiculo.marca} ${vehiculo.modelo} ${vehiculo.anio}",
+                        text = "${vehiculoSeleccionado.marca} " +
+                                "${vehiculoSeleccionado.modelo} " +
+                                "${vehiculoSeleccionado.anio}",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF0D47A1)
                     )
 
+                    Spacer(modifier = Modifier.height(5.dp))
+
                     Text(
-                        text = vehiculo.tipoVehiculo,
+                        text = vehiculoSeleccionado.tipoVehiculo,
                         color = Color.Gray
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = "Kilometraje actual: ${vehiculo.kilometraje} km",
+                        text = "Kilometraje actual: " +
+                                "${vehiculoSeleccionado.kilometraje} km",
                         fontSize = 16.sp
                     )
                 }
+            }
+
+        } else {
+
+            Card(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Selecciona primero un vehículo desde Inicio.",
+                    modifier = Modifier.padding(18.dp),
+                    color = Color(0xFFB71C1C)
+                )
             }
         }
 
@@ -303,7 +228,7 @@ fun ContenidoKilometraje(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Vista previa del kilometraje calculado.
+        // Vista previa del kilometraje acumulado.
         if (
             nuevoKilometraje != null &&
             vehiculoSeleccionado != null
@@ -342,6 +267,7 @@ fun ContenidoKilometraje(
         }
 
         if (mensajeError.isNotEmpty()) {
+
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
@@ -357,11 +283,12 @@ fun ContenidoKilometraje(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(55.dp),
-            enabled = vehiculos.isNotEmpty(),
+            enabled = vehiculoSeleccionado != null,
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xFF0D47A1)
             )
         ) {
+
             Text(
                 text = "Guardar kilometraje",
                 fontSize = 17.sp
