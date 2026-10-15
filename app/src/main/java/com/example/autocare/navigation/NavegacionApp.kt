@@ -3,6 +3,7 @@ package com.example.autocare.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,7 +43,11 @@ import com.example.autocare.viewmodel.usuarios.UsuarioViewModel
 import com.example.autocare.viewmodel.usuarios.UsuarioViewModelFactory
 
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+
+// Permite saber cuándo DataStore terminó de leer la sesión.
+private data class SesionCargada(val usuarioId: Int?)
 
 @Composable
 fun NavegacionPrueba() {
@@ -54,12 +59,16 @@ fun NavegacionPrueba() {
     val aplicacion =
         context.applicationContext as AplicacionAutoCare
 
-    // ID del usuario que inició sesión.
-    val usuarioActivoId by aplicacion.configuracionDataStore
-        .usuarioActivoId
-        .collectAsStateWithLifecycle(initialValue = null)
+    // Leer la sesión guardada en DataStore.
+    val estadoSesion by remember(aplicacion) {
+        aplicacion.configuracionDataStore.usuarioActivoId
+            .map { id -> SesionCargada(id) }
+    }.collectAsState(initial = null)
 
-    // Obtener únicamente los vehículos del usuario activo.
+    val sesionCargada = estadoSesion != null
+    val usuarioActivoId = estadoSesion?.usuarioId
+
+    // Obtener solo los vehículos del usuario activo.
     val vehiculosDelUsuario = remember(
         aplicacion,
         usuarioActivoId
@@ -83,11 +92,24 @@ fun NavegacionPrueba() {
         composable(Rutas.SPLASH) {
 
             SplashScreen(
+                usuarioActivoId = usuarioActivoId,
+                sesionCargada = sesionCargada,
+
                 onIrLogin = {
                     navController.navigate(Rutas.LOGIN) {
                         popUpTo(Rutas.SPLASH) {
                             inclusive = true
                         }
+                        launchSingleTop = true
+                    }
+                },
+
+                onIrInicio = {
+                    navController.navigate(Rutas.INICIO) {
+                        popUpTo(Rutas.SPLASH) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
                     }
                 }
             )
@@ -117,9 +139,11 @@ fun NavegacionPrueba() {
                         }
                     }
                 },
+
                 onIrRegistro = {
                     navController.navigate(Rutas.REGISTRO)
                 },
+
                 usuarioViewModel = usuarioViewModel
             )
         }
@@ -141,10 +165,10 @@ fun NavegacionPrueba() {
                         }
                     }
                 },
+
                 usuarioViewModel = usuarioViewModel
             )
         }
-
 
         // 4. INICIO
         composable(Rutas.INICIO) {
@@ -161,14 +185,17 @@ fun NavegacionPrueba() {
                     )
                 )
 
-            // Consultar mantenimientos de los vehículos del usuario activo.
+            // Obtener los mantenimientos de los vehículos propios.
             val idsVehiculos = vehiculos.map { it.id }
 
             val flujoMantenimientos = remember(
                 idsVehiculos,
                 usuarioActivoId
             ) {
-                if (usuarioActivoId != null && idsVehiculos.isNotEmpty()) {
+                if (
+                    usuarioActivoId != null &&
+                    idsVehiculos.isNotEmpty()
+                ) {
                     kotlinx.coroutines.flow.combine(
                         idsVehiculos.map { id ->
                             mantenimientoViewModel
@@ -191,20 +218,23 @@ fun NavegacionPrueba() {
                 onIrKilometraje = {
                     navController.navigate(Rutas.KILOMETRAJE)
                 },
+
                 onIrMantenimiento = {
                     navController.navigate(Rutas.MANTENIMIENTO)
                 },
+
                 onIrHistorial = {
                     navController.navigate(Rutas.HISTORIAL)
                 },
+
                 onIrConfiguracion = {
                     navController.navigate(Rutas.CONFIGURACION)
                 },
+
                 vehiculos = vehiculos,
                 mantenimientos = mantenimientos
             )
         }
-
 
         // 5. REGISTRO DE KILOMETRAJE
         composable(Rutas.KILOMETRAJE) {
@@ -238,10 +268,12 @@ fun NavegacionPrueba() {
                 onVolver = {
                     navController.popBackStack()
                 },
-                vehiculos = vehiculos,
-                onGuardarKilometraje = { vehiculoId, kilometrajeActual ->
 
-                    // Comprobar que el vehículo sea del usuario.
+                vehiculos = vehiculos,
+
+                onGuardarKilometraje = {
+                        vehiculoId, kilometrajeActual ->
+
                     val esVehiculoPropio = vehiculos.any {
                         it.id == vehiculoId &&
                                 it.usuarioId == usuarioActivoId
@@ -252,13 +284,11 @@ fun NavegacionPrueba() {
                         esVehiculoPropio
                     ) {
 
-                        // Guardar el nuevo kilometraje.
                         kilometrajeViewModel.guardarKilometraje(
                             vehiculoId = vehiculoId,
                             kilometrajeActual = kilometrajeActual
                         )
 
-                        // Comprobar alertas de mantenimiento.
                         mantenimientoViewModel
                             .verificarNotificacionKilometraje(
                                 vehiculoId = vehiculoId,
@@ -282,7 +312,6 @@ fun NavegacionPrueba() {
                 mutableStateOf<Int?>(null)
             }
 
-            // Solo permitir seleccionar vehículos propios.
             val vehiculoId = vehiculos.find {
                 it.id == vehiculoSeleccionadoId
             }?.id ?: vehiculos.firstOrNull()?.id
@@ -300,7 +329,6 @@ fun NavegacionPrueba() {
                     )
                 )
 
-            // Cargar el historial de kilometraje.
             LaunchedEffect(vehiculoId, usuarioActivoId) {
 
                 historialViewModel.limpiarHistorial()
@@ -321,12 +349,13 @@ fun NavegacionPrueba() {
             val estadoHistorial by historialViewModel.uiState
                 .collectAsStateWithLifecycle()
 
-            val registros = when (val estado = estadoHistorial) {
+            val registros = when (
+                val estado = estadoHistorial
+            ) {
                 is HistorialUiState.Success -> estado.registros
                 else -> emptyList()
             }
 
-            // Obtener mantenimientos del vehículo seleccionado.
             val flujoMantenimientos = remember(
                 vehiculoId,
                 usuarioActivoId
@@ -351,7 +380,9 @@ fun NavegacionPrueba() {
                 onVolver = {
                     navController.popBackStack()
                 },
+
                 vehiculos = vehiculos,
+
                 registros = if (
                     vehiculoId != null &&
                     usuarioActivoId != null
@@ -362,6 +393,7 @@ fun NavegacionPrueba() {
                 } else {
                     emptyList()
                 },
+
                 registrosMantenimiento = if (
                     vehiculoId != null &&
                     usuarioActivoId != null
@@ -372,12 +404,15 @@ fun NavegacionPrueba() {
                 } else {
                     emptyList()
                 },
+
                 vehiculoSeleccionadoId = vehiculoId,
+
                 onSeleccionarVehiculo = { id ->
                     if (vehiculos.any { it.id == id }) {
                         vehiculoSeleccionadoId = id
                     }
                 },
+
                 estadoHistorial = estadoHistorial
             )
         }
@@ -403,7 +438,9 @@ fun NavegacionPrueba() {
                 } else {
                     emptyList()
                 },
+
                 viewModel = mantenimientoViewModel,
+
                 onVolver = {
                     navController.popBackStack()
                 }
@@ -429,13 +466,14 @@ fun NavegacionPrueba() {
                 onVolver = {
                     navController.popBackStack()
                 },
+
                 onAgregarVehiculo = {
                     if (usuarioActivoId != null) {
                         navController.navigate(Rutas.VEHICULO)
                     }
                 },
-                onEditarVehiculo = { vehiculo ->
 
+                onEditarVehiculo = { vehiculo ->
                     if (
                         usuarioActivoId != null &&
                         vehiculo.usuarioId == usuarioActivoId
@@ -445,6 +483,7 @@ fun NavegacionPrueba() {
                         )
                     }
                 },
+
                 onCerrarSesion = {
 
                     scope.launch {
@@ -459,6 +498,7 @@ fun NavegacionPrueba() {
                         }
                     }
                 },
+
                 vehiculoViewModel = vehiculoViewModel
             )
         }
@@ -483,6 +523,7 @@ fun NavegacionPrueba() {
                     onVolver = {
                         navController.popBackStack()
                     },
+
                     vehiculoViewModel = vehiculoViewModel,
                     vehiculoEditar = null
                 )
@@ -544,6 +585,7 @@ fun NavegacionPrueba() {
                     onVolver = {
                         navController.popBackStack()
                     },
+
                     vehiculoViewModel = vehiculoViewModel,
                     vehiculoEditar = vehiculoEditar
                 )

@@ -1,3 +1,4 @@
+
 package com.example.autocare.screens
 
 import androidx.compose.foundation.Image
@@ -24,13 +25,23 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun SplashScreen(
-    onIrLogin: () -> Unit
+    usuarioActivoId: Int?,
+    sesionCargada: Boolean,
+    onIrLogin: () -> Unit,
+    onIrInicio: () -> Unit
 ) {
 
-    // Espera 3 segundos y después continúa al Login
-    LaunchedEffect(Unit) {
-        delay(3000)
-        onIrLogin()
+    // Esperar 3 segundos y comprobar si existe una sesión guardada.
+    LaunchedEffect(usuarioActivoId, sesionCargada) {
+        if (sesionCargada) {
+            delay(3000)
+
+            if (usuarioActivoId != null) {
+                onIrInicio()
+            } else {
+                onIrLogin()
+            }
+        }
     }
 
     Column(
@@ -41,7 +52,6 @@ fun SplashScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        // Logo de AutoCare
         Image(
             painter = painterResource(id = R.drawable.autocare_splash),
             contentDescription = "Logo de AutoCare",
@@ -49,9 +59,7 @@ fun SplashScreen(
             contentScale = ContentScale.Fit
         )
 
-        Spacer(
-            modifier = Modifier.height(20.dp)
-        )
+        Spacer(modifier = Modifier.height(20.dp))
 
         Text(
             text = "AutoCare",
