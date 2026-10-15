@@ -115,8 +115,92 @@ class UsuarioRepository(
         ResultadoAutenticacion.Exito(usuario)
     }
 
+    // Obtener los datos de un usuario.
     suspend fun obtenerUsuario(id: Int): Usuario? =
         withContext(Dispatchers.IO) {
             usuarioDao.buscarPorId(id)
         }
+
+    // Cambiar la contraseña del usuario que inició sesión.
+    suspend fun cambiarContrasena(
+        usuarioId: Int,
+        contrasenaActual: String,
+        nuevaContrasena: String,
+        confirmarContrasena: String
+    ): ResultadoAutenticacion = withContext(Dispatchers.IO) {
+
+        if (
+            contrasenaActual.isBlank() ||
+            nuevaContrasena.isBlank() ||
+            confirmarContrasena.isBlank()
+        ) {
+            return@withContext ResultadoAutenticacion.Error(
+                "Completa todos los campos."
+            )
+        }
+
+        if (nuevaContrasena.length < 8) {
+            return@withContext ResultadoAutenticacion.Error(
+                "La nueva contraseña debe tener al menos 8 caracteres."
+            )
+        }
+
+        if (nuevaContrasena != confirmarContrasena) {
+            return@withContext ResultadoAutenticacion.Error(
+                "Las nuevas contraseñas no coinciden."
+            )
+        }
+
+        val usuario = usuarioDao.buscarPorId(usuarioId)
+            ?: return@withContext ResultadoAutenticacion.Error(
+                "No se encontró el usuario."
+            )
+
+        // Comprobar la contraseña actual.
+        val contrasenaCorrecta =
+            SeguridadContrasena.verificarContrasena(
+                contrasenaIngresada = contrasenaActual,
+                hashGuardado = usuario.contrasenaHash,
+                saltGuardado = usuario.salt
+            )
+
+        if (!contrasenaCorrecta) {
+            return@withContext ResultadoAutenticacion.Error(
+                "La contraseña actual es incorrecta."
+            )
+        }
+
+        if (contrasenaActual == nuevaContrasena) {
+            return@withContext ResultadoAutenticacion.Error(
+                "La nueva contraseña debe ser diferente de la actual."
+            )
+        }
+
+        // Proteger la nueva contraseña.
+        val nuevoSalt = SeguridadContrasena.generarSalt()
+        val nuevoHash = SeguridadContrasena.generarHash(
+            nuevaContrasena,
+            nuevoSalt
+        )
+
+        // Actualizar la contraseña en Room.
+        val filasActualizadas = usuarioDao.actualizarContrasena(
+            usuarioId = usuarioId,
+            nuevoHash = nuevoHash,
+            nuevoSalt = nuevoSalt
+        )
+
+        if (filasActualizadas != 1) {
+            return@withContext ResultadoAutenticacion.Error(
+                "No se pudo actualizar la contraseña."
+            )
+        }
+
+        ResultadoAutenticacion.Exito(
+            usuario.copy(
+                contrasenaHash = nuevoHash,
+                salt = nuevoSalt
+            )
+        )
+    }
 }

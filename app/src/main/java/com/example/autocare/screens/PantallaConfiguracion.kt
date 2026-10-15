@@ -18,6 +18,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -33,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -42,6 +44,8 @@ import com.example.autocare.data.Vehiculo
 import com.example.autocare.viewmodel.ConfiguracionViewModel
 import com.example.autocare.viewmodel.ConfiguracionViewModelFactory
 import com.example.autocare.viewmodel.VehiculoViewModel
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 
 @Composable
 fun PantallaConfiguracion(
@@ -49,12 +53,21 @@ fun PantallaConfiguracion(
     onAgregarVehiculo: () -> Unit,
     onEditarVehiculo: (Vehiculo) -> Unit,
     onCerrarSesion: () -> Unit,
-    vehiculoViewModel: VehiculoViewModel
+    vehiculoViewModel: VehiculoViewModel,
+    onCambiarContrasena: suspend (
+        String,
+        String,
+        String
+    ) -> Boolean
 ) {
 
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
-    // Inicializar DataStore y su ViewModel.
+    var guardandoContrasena by remember {
+        mutableStateOf(false)
+    }
+
     val dataStore = remember {
         ConfiguracionDataStore(context)
     }
@@ -67,7 +80,6 @@ fun PantallaConfiguracion(
         factory = configFactory
     )
 
-    // Escuchar las preferencias guardadas.
     val notificacionesActivas by configViewModel
         .notificacionesActivadas
         .collectAsState()
@@ -76,17 +88,31 @@ fun PantallaConfiguracion(
         .recordatoriosActivados
         .collectAsState()
 
-    // Vehículos de la cuenta activa.
     val vehiculos by vehiculoViewModel.vehiculos.collectAsState()
 
-    // Vehículo pendiente de eliminación.
     var vehiculoAEliminar by remember {
         mutableStateOf<Vehiculo?>(null)
     }
 
-    // Controlar la confirmación de cierre de sesión.
     var mostrarConfirmacionSalida by remember {
         mutableStateOf(false)
+    }
+
+    // Campos para cambiar contraseña.
+    var mostrarCambioContrasena by remember {
+        mutableStateOf(false)
+    }
+
+    var contrasenaActual by remember {
+        mutableStateOf("")
+    }
+
+    var nuevaContrasena by remember {
+        mutableStateOf("")
+    }
+
+    var confirmarContrasena by remember {
+        mutableStateOf("")
     }
 
     Column(
@@ -96,9 +122,7 @@ fun PantallaConfiguracion(
             .padding(24.dp)
     ) {
 
-        TextButton(
-            onClick = onVolver
-        ) {
+        TextButton(onClick = onVolver) {
             Text("← Volver")
         }
 
@@ -161,22 +185,15 @@ fun PantallaConfiguracion(
 
                             Spacer(modifier = Modifier.height(6.dp))
 
-                            Text(
-                                text = "Año: ${vehiculo.anio}"
-                            )
-
-                            Text(
-                                text = "Tipo: ${vehiculo.tipoVehiculo}"
-                            )
-
-                            Text(
-                                text = "Kilometraje: ${vehiculo.kilometraje} km"
-                            )
+                            Text("Año: ${vehiculo.anio}")
+                            Text("Tipo: ${vehiculo.tipoVehiculo}")
+                            Text("Kilometraje: ${vehiculo.kilometraje} km")
 
                             Spacer(modifier = Modifier.height(12.dp))
 
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement =
+                                    Arrangement.spacedBy(8.dp)
                             ) {
 
                                 OutlinedButton(
@@ -301,7 +318,7 @@ fun PantallaConfiguracion(
 
         Spacer(modifier = Modifier.height(35.dp))
 
-        // SECCIÓN DE CIERRE DE SESIÓN.
+        // SECCIÓN CUENTA.
         Text(
             text = "Cuenta",
             fontSize = 20.sp,
@@ -312,12 +329,29 @@ fun PantallaConfiguracion(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Puedes salir de tu cuenta sin perder tus vehículos ni registros.",
+            text = "Administra la seguridad y sesión de tu cuenta.",
             fontSize = 14.sp,
             color = Color.Gray
         )
 
         Spacer(modifier = Modifier.height(16.dp))
+
+        // NUEVO BOTÓN: CAMBIAR CONTRASEÑA.
+        OutlinedButton(
+            onClick = {
+                mostrarCambioContrasena = true
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(55.dp)
+        ) {
+            Text(
+                text = "Cambiar contraseña",
+                fontSize = 16.sp
+            )
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
 
         Button(
             onClick = {
@@ -338,6 +372,112 @@ fun PantallaConfiguracion(
         }
 
         Spacer(modifier = Modifier.height(20.dp))
+    }
+
+    // Diálogo para cambiar contraseña.
+    if (mostrarCambioContrasena) {
+
+        AlertDialog(
+            onDismissRequest = {
+                mostrarCambioContrasena = false
+            },
+            title = {
+                Text("Cambiar contraseña")
+            },
+            text = {
+
+                Column(
+                    verticalArrangement =
+                        Arrangement.spacedBy(12.dp)
+                ) {
+
+                    OutlinedTextField(
+                        value = contrasenaActual,
+                        onValueChange = {
+                            contrasenaActual = it
+                        },
+                        label = {
+                            Text("Contraseña actual")
+                        },
+                        visualTransformation =
+                            PasswordVisualTransformation(),
+                        singleLine = true
+                    )
+
+                    OutlinedTextField(
+                        value = nuevaContrasena,
+                        onValueChange = {
+                            nuevaContrasena = it
+                        },
+                        label = {
+                            Text("Nueva contraseña")
+                        },
+                        visualTransformation =
+                            PasswordVisualTransformation(),
+                        singleLine = true
+                    )
+
+                    OutlinedTextField(
+                        value = confirmarContrasena,
+                        onValueChange = {
+                            confirmarContrasena = it
+                        },
+                        label = {
+                            Text("Confirmar contraseña")
+                        },
+                        visualTransformation =
+                            PasswordVisualTransformation(),
+                        singleLine = true
+                    )
+                }
+            },
+
+            confirmButton = {
+                TextButton(
+                    enabled = !guardandoContrasena,
+                    onClick = {
+                        scope.launch {
+                            guardandoContrasena = true
+
+                            try {
+                                val cambioExitoso = onCambiarContrasena(
+                                    contrasenaActual,
+                                    nuevaContrasena,
+                                    confirmarContrasena
+                                )
+
+                                if (cambioExitoso) {
+                                    // Cerrar la ventana.
+                                    mostrarCambioContrasena = false
+
+                                    // Limpiar los campos.
+                                    contrasenaActual = ""
+                                    nuevaContrasena = ""
+                                    confirmarContrasena = ""
+                                }
+                            } finally {
+                                guardandoContrasena = false
+                            }
+                        }
+                    }
+                ) {
+                    Text(
+                        if (guardandoContrasena) "Guardando..."
+                        else "Guardar"
+                    )
+                }
+            }
+,
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        mostrarCambioContrasena = false
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 
     // Confirmación para eliminar un vehículo.

@@ -1,6 +1,7 @@
 
 package com.example.autocare.navigation
 
+import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -19,6 +20,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.autocare.AplicacionAutoCare
 import com.example.autocare.data.Mantenimiento
 import com.example.autocare.data.Vehiculo
+import com.example.autocare.data.usuarios.ResultadoAutenticacion
 
 import com.example.autocare.screens.HomeScreen
 import com.example.autocare.screens.LoginScreen
@@ -185,7 +187,7 @@ fun NavegacionPrueba() {
                     )
                 )
 
-            // Obtener los mantenimientos de los vehículos propios.
+            // Obtener mantenimientos de los vehículos propios.
             val idsVehiculos = vehiculos.map { it.id }
 
             val flujoMantenimientos = remember(
@@ -356,6 +358,7 @@ fun NavegacionPrueba() {
                 else -> emptyList()
             }
 
+            // Mantenimientos del vehículo seleccionado.
             val flujoMantenimientos = remember(
                 vehiculoId,
                 usuarioActivoId
@@ -481,6 +484,52 @@ fun NavegacionPrueba() {
                         navController.navigate(
                             Rutas.editarVehiculo(vehiculo.id)
                         )
+                    }
+                },
+
+
+                onCambiarContrasena = { actual, nueva, confirmacion ->
+
+                    val id = usuarioActivoId
+
+                    if (id == null) {
+                        Toast.makeText(
+                            context,
+                            "Debes iniciar sesión.",
+                            Toast.LENGTH_SHORT
+                        ).show()
+
+                        false
+                    } else {
+                        val resultado = aplicacion.usuarioRepository
+                            .cambiarContrasena(
+                                usuarioId = id,
+                                contrasenaActual = actual,
+                                nuevaContrasena = nueva,
+                                confirmarContrasena = confirmacion
+                            )
+
+                        when (resultado) {
+                            is ResultadoAutenticacion.Exito -> {
+                                Toast.makeText(
+                                    context,
+                                    "Contraseña actualizada correctamente.",
+                                    Toast.LENGTH_LONG
+                                ).show()
+
+                                true
+                            }
+
+                            is ResultadoAutenticacion.Error -> {
+                                Toast.makeText(
+                                    context,
+                                    resultado.mensaje,
+                                    Toast.LENGTH_LONG
+                                ).show()
+
+                                false
+                            }
+                        }
                     }
                 },
 
