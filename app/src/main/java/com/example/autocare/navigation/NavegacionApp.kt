@@ -145,10 +145,44 @@ fun NavegacionPrueba() {
             )
         }
 
+
         // 4. INICIO
         composable(Rutas.INICIO) {
 
             val vehiculos by vehiculosDelUsuario
+                .collectAsStateWithLifecycle(
+                    initialValue = emptyList()
+                )
+
+            val mantenimientoViewModel: MantenimientoViewModel =
+                viewModel(
+                    factory = MantenimientoViewModelFactory(
+                        aplicacion.mantenimientoRepository
+                    )
+                )
+
+            // Consultar mantenimientos de los vehículos del usuario activo.
+            val idsVehiculos = vehiculos.map { it.id }
+
+            val flujoMantenimientos = remember(
+                idsVehiculos,
+                usuarioActivoId
+            ) {
+                if (usuarioActivoId != null && idsVehiculos.isNotEmpty()) {
+                    kotlinx.coroutines.flow.combine(
+                        idsVehiculos.map { id ->
+                            mantenimientoViewModel
+                                .obtenerMantenimientosPorVehiculo(id)
+                        }
+                    ) { listas ->
+                        listas.flatMap { it }
+                    }
+                } else {
+                    flowOf(emptyList<Mantenimiento>())
+                }
+            }
+
+            val mantenimientos by flujoMantenimientos
                 .collectAsStateWithLifecycle(
                     initialValue = emptyList()
                 )
@@ -166,9 +200,11 @@ fun NavegacionPrueba() {
                 onIrConfiguracion = {
                     navController.navigate(Rutas.CONFIGURACION)
                 },
-                vehiculos = vehiculos
+                vehiculos = vehiculos,
+                mantenimientos = mantenimientos
             )
         }
+
 
         // 5. REGISTRO DE KILOMETRAJE
         composable(Rutas.KILOMETRAJE) {

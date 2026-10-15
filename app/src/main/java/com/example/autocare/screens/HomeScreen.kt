@@ -12,6 +12,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.autocare.data.Vehiculo
+import com.example.autocare.data.Mantenimiento
 
 @Composable
 fun HomeScreen(
@@ -19,10 +20,15 @@ fun HomeScreen(
     onIrMantenimiento: () -> Unit,
     onIrHistorial: () -> Unit,
     onIrConfiguracion: () -> Unit,
-
-    // Lista de vehículos que viene desde Room
-    vehiculos: List<Vehiculo> = emptyList()
+    vehiculos: List<Vehiculo> = emptyList(),
+    mantenimientos: List<Mantenimiento> = emptyList()
 ) {
+    // Relacionamos cada mantenimiento con el vehículo correspondiente.
+    val proximosMantenimientos = mantenimientos.filter { mantenimiento ->
+        vehiculos.any { vehiculo ->
+            vehiculo.id == mantenimiento.vehiculoId
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -30,7 +36,6 @@ fun HomeScreen(
             .verticalScroll(rememberScrollState())
             .padding(24.dp)
     ) {
-
         Text(
             text = "Bienvenido a AutoCare 👋",
             fontSize = 28.sp,
@@ -54,15 +59,9 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Mostrar un mensaje si todavía no hay vehículos
         if (vehiculos.isEmpty()) {
-
-            Card(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier.padding(18.dp)
-                ) {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(18.dp)) {
                     Text("Todavía no tienes vehículos registrados.")
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -79,23 +78,15 @@ fun HomeScreen(
                     }
                 }
             }
-
         } else {
-
-            // Mostrar todos los vehículos registrados en Room
             vehiculos.forEach { vehiculo ->
-
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
                         containerColor = Color(0xFFE3F2FD)
                     )
                 ) {
-
-                    Column(
-                        modifier = Modifier.padding(18.dp)
-                    ) {
-
+                    Column(modifier = Modifier.padding(18.dp)) {
                         Text(
                             text = "${vehiculo.marca} ${vehiculo.modelo}",
                             fontSize = 20.sp,
@@ -133,29 +124,71 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Pendiente de conectar con los mantenimientos de Maykol
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = Color(0xFFFFF8E1)
-            )
-        ) {
-
-            Column(
-                modifier = Modifier.padding(16.dp)
+        if (proximosMantenimientos.isEmpty()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFFFFF8E1)
+                )
             ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Sin información de mantenimientos",
+                        fontWeight = FontWeight.Bold
+                    )
 
-                Text(
-                    text = "Sin información de mantenimientos",
-                    fontWeight = FontWeight.Bold
-                )
+                    Spacer(modifier = Modifier.height(5.dp))
 
-                Spacer(modifier = Modifier.height(5.dp))
+                    Text(
+                        text = "Aquí aparecerán tus próximos mantenimientos registrados.",
+                        color = Color.Gray
+                    )
+                }
+            }
+        } else {
+            proximosMantenimientos.forEach { mantenimiento ->
 
-                Text(
-                    text = "Aquí aparecerán tus próximos mantenimientos registrados.",
-                    color = Color.Gray
-                )
+                val vehiculo = vehiculos.find {
+                    it.id == mantenimiento.vehiculoId
+                }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFFFFF8E1)
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = mantenimiento.titulo,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0D47A1)
+                        )
+
+                        Spacer(modifier = Modifier.height(5.dp))
+
+                        Text(
+                            text = "Vehículo: ${vehiculo?.marca ?: ""} ${vehiculo?.modelo ?: ""}"
+                        )
+
+                        Text(
+                            text = "Tipo: ${mantenimiento.tipo}"
+                        )
+
+                        Text(
+                            text = "Próximo kilometraje: ${mantenimiento.proximoKilometraje} km"
+                        )
+
+                        if (!mantenimiento.proximaFecha.isNullOrBlank()) {
+                            Text(
+                                text = "Próxima fecha: ${mantenimiento.proximaFecha}"
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
             }
         }
 
@@ -173,7 +206,6 @@ fun HomeScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-
             Button(
                 onClick = onIrKilometraje,
                 modifier = Modifier.weight(1f)
@@ -195,7 +227,6 @@ fun HomeScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-
             Button(
                 onClick = onIrHistorial,
                 modifier = Modifier.weight(1f)
