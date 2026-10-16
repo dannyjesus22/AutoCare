@@ -27,7 +27,8 @@ class MantenimientoViewModel(
         fecha: String,
         proximaFecha: String?,
         costo: Double,
-        notas: String
+        notas: String,
+        completado: Boolean = false
     ) {
         viewModelScope.launch {
             val nuevoMantenimiento = Mantenimiento(
@@ -39,9 +40,17 @@ class MantenimientoViewModel(
                 fecha = fecha,
                 proximaFecha = proximaFecha,
                 costo = costo,
-                notas = notas
+                notas = notas,
+                completado = completado
             )
             repository.insertarMantenimiento(nuevoMantenimiento)
+        }
+    }
+
+    fun cambiarEstadoMantenimiento(mantenimiento: Mantenimiento, estaCompletado: Boolean) {
+        viewModelScope.launch {
+            val mantenimientoActualizado = mantenimiento.copy(completado = estaCompletado)
+            repository.actualizarMantenimiento(mantenimientoActualizado)
         }
     }
 
@@ -54,13 +63,17 @@ class MantenimientoViewModel(
             val mantenimientos = repository.obtenerMantenimientosPorVehiculo(vehiculoId).firstOrNull()
 
             mantenimientos?.forEach { mantenimiento ->
-                val kmDisparoAlerta = mantenimiento.proximoKilometraje
-                if (kmDisparoAlerta != null && nuevoKilometraje >= kmDisparoAlerta) {
-                    val notificacionHelper = NotificacionHelper(context)
-                    notificacionHelper.enviarNotificacionMantenimiento(
-                        titulo = "Recordatorio de Mantenimiento",
-                        mensaje = "Tu vehículo alcanzó los $nuevoKilometraje km. Tienes pendiente: ${mantenimiento.titulo}"
-                    )
+                // SOLUCIÓN AL ERROR 2 Y 3:
+                // Evaluar la notificación ÚNICAMENTE si el mantenimiento está PENDIENTE (!completado).
+                if (!mantenimiento.completado) {
+                    val kmDisparoAlerta = mantenimiento.proximoKilometraje
+                    if (kmDisparoAlerta != null && nuevoKilometraje >= kmDisparoAlerta) {
+                        val notificacionHelper = NotificacionHelper(context)
+                        notificacionHelper.enviarNotificacionMantenimiento(
+                            titulo = "Recordatorio de Mantenimiento Pendiente",
+                            mensaje = "Tu vehículo alcanzó los $nuevoKilometraje km. Tienes pendiente: ${mantenimiento.titulo}"
+                        )
+                    }
                 }
             }
         }

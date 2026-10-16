@@ -29,5 +29,5 @@ data class Mantenimiento(
     val proximaFecha: String?,
     val costo: Double,
     val notas: String = "",
-    val completado: Boolean = true
+    val completado: Boolean = false // PENDIENTE por defecto
 )
