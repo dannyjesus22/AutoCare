@@ -8,11 +8,13 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class ConfiguracionViewModel(
+@HiltViewModel
+class ConfiguracionViewModel @Inject constructor(
     private val dataStore: ConfiguracionDataStore
 ) : ViewModel() {
-
     val notificacionesActivadas: StateFlow<Boolean> = dataStore.notificacionesActivadas.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),

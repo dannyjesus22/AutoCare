@@ -5,12 +5,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.autocare.data.RegistroKilometraje
 import com.example.autocare.data.RegistroKilometrajeRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 // Estados de la pantalla de historial.
 sealed interface HistorialUiState {
@@ -26,7 +28,8 @@ sealed interface HistorialUiState {
     ) : HistorialUiState
 }
 
-class HistorialViewModel(
+@HiltViewModel
+class HistorialViewModel @Inject constructor(
     private val repository: RegistroKilometrajeRepository
 ) : ViewModel() {
 

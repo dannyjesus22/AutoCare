@@ -6,11 +6,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.autocare.data.RegistroKilometraje
 import com.example.autocare.data.RegistroKilometrajeRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class RegistroKilometrajeViewModel(
+@HiltViewModel
+class RegistroKilometrajeViewModel @Inject constructor(
     private val repository: RegistroKilometrajeRepository
 ) : ViewModel() {
 

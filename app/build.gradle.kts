@@ -60,6 +60,7 @@ dependencies {
     // Inyección de dependencias con Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+    implementation("androidx.hilt:hilt-navigation-compose:1.3.0")
 
     // ViewModel para Jetpack Compose
     implementation(libs.androidx.lifecycle.viewmodel.compose)

@@ -1,3 +1,4 @@
+
 package com.example.autocare.viewmodel
 
 import android.content.Context
@@ -6,15 +7,20 @@ import androidx.lifecycle.viewModelScope
 import com.example.autocare.data.Mantenimiento
 import com.example.autocare.data.MantenimientoRepository
 import com.example.autocare.utils.NotificacionHelper
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class MantenimientoViewModel(
+@HiltViewModel
+class MantenimientoViewModel @Inject constructor(
     private val repository: MantenimientoRepository
 ) : ViewModel() {
 
-    fun obtenerMantenimientosPorVehiculo(vehiculoId: Int): Flow<List<Mantenimiento>> {
+    fun obtenerMantenimientosPorVehiculo(
+        vehiculoId: Int
+    ): Flow<List<Mantenimiento>> {
         return repository.obtenerMantenimientosPorVehiculo(vehiculoId)
     }
 
@@ -43,13 +49,20 @@ class MantenimientoViewModel(
                 notas = notas,
                 completado = completado
             )
+
             repository.insertarMantenimiento(nuevoMantenimiento)
         }
     }
 
-    fun cambiarEstadoMantenimiento(mantenimiento: Mantenimiento, estaCompletado: Boolean) {
+    fun cambiarEstadoMantenimiento(
+        mantenimiento: Mantenimiento,
+        estaCompletado: Boolean
+    ) {
         viewModelScope.launch {
-            val mantenimientoActualizado = mantenimiento.copy(completado = estaCompletado)
+            val mantenimientoActualizado = mantenimiento.copy(
+                completado = estaCompletado
+            )
+
             repository.actualizarMantenimiento(mantenimientoActualizado)
         }
     }
@@ -60,15 +73,23 @@ class MantenimientoViewModel(
         context: Context
     ) {
         viewModelScope.launch {
-            val mantenimientos = repository.obtenerMantenimientosPorVehiculo(vehiculoId).firstOrNull()
+            val mantenimientos = repository
+                .obtenerMantenimientosPorVehiculo(vehiculoId)
+                .firstOrNull()
 
             mantenimientos?.forEach { mantenimiento ->
-                // SOLUCIÓN AL ERROR 2 Y 3:
-                // Evaluar la notificación ÚNICAMENTE si el mantenimiento está PENDIENTE (!completado).
+
+                // Notificar solamente si el mantenimiento está pendiente.
                 if (!mantenimiento.completado) {
+
                     val kmDisparoAlerta = mantenimiento.proximoKilometraje
-                    if (kmDisparoAlerta != null && nuevoKilometraje >= kmDisparoAlerta) {
+
+                    if (
+                        kmDisparoAlerta != null &&
+                        nuevoKilometraje >= kmDisparoAlerta
+                    ) {
                         val notificacionHelper = NotificacionHelper(context)
+
                         notificacionHelper.enviarNotificacionMantenimiento(
                             titulo = "Recordatorio de Mantenimiento Pendiente",
                             mensaje = "Tu vehículo alcanzó los $nuevoKilometraje km. Tienes pendiente: ${mantenimiento.titulo}"

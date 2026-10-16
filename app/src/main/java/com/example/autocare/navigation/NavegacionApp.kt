@@ -11,10 +11,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.hilt.navigation.compose.hiltViewModel
 
 import com.example.autocare.AplicacionAutoCare
 import com.example.autocare.data.Mantenimiento
@@ -34,15 +35,11 @@ import com.example.autocare.utils.GeneradorReportePdf
 
 import com.example.autocare.viewmodel.HistorialUiState
 import com.example.autocare.viewmodel.HistorialViewModel
-import com.example.autocare.viewmodel.HistorialViewModelFactory
+
 import com.example.autocare.viewmodel.MantenimientoViewModel
-import com.example.autocare.viewmodel.MantenimientoViewModelFactory
 import com.example.autocare.viewmodel.RegistroKilometrajeViewModel
-import com.example.autocare.viewmodel.RegistroKilometrajeViewModelFactory
 import com.example.autocare.viewmodel.VehiculoViewModel
-import com.example.autocare.viewmodel.VehiculoViewModelFactory
 import com.example.autocare.viewmodel.usuarios.UsuarioViewModel
-import com.example.autocare.viewmodel.usuarios.UsuarioViewModelFactory
 
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -116,10 +113,7 @@ fun NavegacionPrueba() {
 
         // 2. LOGIN
         composable(Rutas.LOGIN) {
-            val usuarioViewModel: UsuarioViewModel = viewModel(
-                factory = UsuarioViewModelFactory(aplicacion.usuarioRepository)
-            )
-
+            val usuarioViewModel: UsuarioViewModel = hiltViewModel()
             LoginScreen(
                 onIniciarSesion = { usuarioId ->
                     scope.launch {
@@ -139,9 +133,7 @@ fun NavegacionPrueba() {
 
         // 3. REGISTRO
         composable(Rutas.REGISTRO) {
-            val usuarioViewModel: UsuarioViewModel = viewModel(
-                factory = UsuarioViewModelFactory(aplicacion.usuarioRepository)
-            )
+            val usuarioViewModel: UsuarioViewModel = hiltViewModel()
 
             RegisterScreen(
                 onIrLogin = {
@@ -161,9 +153,7 @@ fun NavegacionPrueba() {
                 it.id == vehiculoSeleccionadoId
             }?.id ?: vehiculos.firstOrNull()?.id
 
-            val mantenimientoViewModel: MantenimientoViewModel = viewModel(
-                factory = MantenimientoViewModelFactory(aplicacion.mantenimientoRepository)
-            )
+            val mantenimientoViewModel: MantenimientoViewModel = hiltViewModel()
 
             val flujoMantenimientos = remember(vehiculoIdActual, usuarioActivoId) {
                 if (usuarioActivoId != null && vehiculoIdActual != null) {
@@ -195,13 +185,9 @@ fun NavegacionPrueba() {
         composable(Rutas.KILOMETRAJE) {
             val vehiculos by vehiculosDelUsuario.collectAsStateWithLifecycle(initialValue = emptyList())
 
-            val kilometrajeViewModel: RegistroKilometrajeViewModel = viewModel(
-                factory = RegistroKilometrajeViewModelFactory(aplicacion.registroKilometrajeRepository)
-            )
+            val kilometrajeViewModel: RegistroKilometrajeViewModel = hiltViewModel()
 
-            val mantenimientoViewModel: MantenimientoViewModel = viewModel(
-                factory = MantenimientoViewModelFactory(aplicacion.mantenimientoRepository)
-            )
+            val mantenimientoViewModel: MantenimientoViewModel = hiltViewModel()
 
             LaunchedEffect(usuarioActivoId) {
                 kilometrajeViewModel.establecerUsuarioActivo(usuarioActivoId)
@@ -242,13 +228,9 @@ fun NavegacionPrueba() {
                 it.id == vehiculoSeleccionadoId
             }?.id ?: vehiculos.firstOrNull()?.id
 
-            val historialViewModel: HistorialViewModel = viewModel(
-                factory = HistorialViewModelFactory(aplicacion.registroKilometrajeRepository)
-            )
+            val historialViewModel: HistorialViewModel = hiltViewModel()
 
-            val mantenimientoViewModel: MantenimientoViewModel = viewModel(
-                factory = MantenimientoViewModelFactory(aplicacion.mantenimientoRepository)
-            )
+            val mantenimientoViewModel: MantenimientoViewModel = hiltViewModel()
 
             LaunchedEffect(vehiculoId, usuarioActivoId) {
                 historialViewModel.limpiarHistorial()
@@ -329,9 +311,7 @@ fun NavegacionPrueba() {
         composable(Rutas.MANTENIMIENTO) {
             val vehiculos by vehiculosDelUsuario.collectAsStateWithLifecycle(initialValue = emptyList())
 
-            val mantenimientoViewModel: MantenimientoViewModel = viewModel(
-                factory = MantenimientoViewModelFactory(aplicacion.mantenimientoRepository)
-            )
+            val mantenimientoViewModel: MantenimientoViewModel = hiltViewModel()
 
             PantallaMantenimiento(
                 vehiculos = if (usuarioActivoId != null) vehiculos else emptyList(),
@@ -342,9 +322,7 @@ fun NavegacionPrueba() {
 
         // 8. CONFIGURACIÓN
         composable(Rutas.CONFIGURACION) {
-            val vehiculoViewModel: VehiculoViewModel = viewModel(
-                factory = VehiculoViewModelFactory(aplicacion.vehiculoRepository)
-            )
+            val vehiculoViewModel: VehiculoViewModel = hiltViewModel()
 
             LaunchedEffect(usuarioActivoId) {
                 vehiculoViewModel.establecerUsuarioActivo(usuarioActivoId)
@@ -405,9 +383,7 @@ fun NavegacionPrueba() {
 
         // 9. REGISTRAR VEHÍCULO
         composable(Rutas.VEHICULO) {
-            val vehiculoViewModel: VehiculoViewModel = viewModel(
-                factory = VehiculoViewModelFactory(aplicacion.vehiculoRepository)
-            )
+            val vehiculoViewModel: VehiculoViewModel = hiltViewModel()
 
             LaunchedEffect(usuarioActivoId) {
                 vehiculoViewModel.establecerUsuarioActivo(usuarioActivoId)
@@ -426,9 +402,7 @@ fun NavegacionPrueba() {
         composable(Rutas.EDITAR_VEHICULO) { entrada ->
             val vehiculoId = entrada.arguments?.getString("vehiculoId")?.toIntOrNull()
 
-            val vehiculoViewModel: VehiculoViewModel = viewModel(
-                factory = VehiculoViewModelFactory(aplicacion.vehiculoRepository)
-            )
+            val vehiculoViewModel: VehiculoViewModel = hiltViewModel()
 
             LaunchedEffect(usuarioActivoId) {
                 vehiculoViewModel.establecerUsuarioActivo(usuarioActivoId)

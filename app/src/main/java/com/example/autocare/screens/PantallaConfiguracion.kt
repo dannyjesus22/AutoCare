@@ -1,6 +1,7 @@
 
 package com.example.autocare.screens
 
+import androidx.hilt.navigation.compose.hiltViewModel
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -37,12 +38,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 
-import com.example.autocare.data.ConfiguracionDataStore
 import com.example.autocare.data.Vehiculo
 import com.example.autocare.viewmodel.ConfiguracionViewModel
-import com.example.autocare.viewmodel.ConfiguracionViewModelFactory
 import com.example.autocare.viewmodel.VehiculoViewModel
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
@@ -68,17 +66,7 @@ fun PantallaConfiguracion(
         mutableStateOf(false)
     }
 
-    val dataStore = remember {
-        ConfiguracionDataStore(context)
-    }
-
-    val configFactory = remember {
-        ConfiguracionViewModelFactory(dataStore)
-    }
-
-    val configViewModel: ConfiguracionViewModel = viewModel(
-        factory = configFactory
-    )
+    val configViewModel: ConfiguracionViewModel = hiltViewModel()
 
     val notificacionesActivas by configViewModel
         .notificacionesActivadas

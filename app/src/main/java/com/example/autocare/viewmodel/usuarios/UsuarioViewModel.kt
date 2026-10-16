@@ -6,10 +6,12 @@ import androidx.lifecycle.viewModelScope
 import com.example.autocare.data.usuarios.ResultadoAutenticacion
 import com.example.autocare.data.usuarios.Usuario
 import com.example.autocare.data.usuarios.UsuarioRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 // Estados que puede mostrar el registro o inicio de sesión.
 sealed interface EstadoUsuario {
@@ -19,7 +21,8 @@ sealed interface EstadoUsuario {
     data class Error(val mensaje: String) : EstadoUsuario
 }
 
-class UsuarioViewModel(
+@HiltViewModel
+class UsuarioViewModel @Inject constructor(
     private val repository: UsuarioRepository
 ) : ViewModel() {
 

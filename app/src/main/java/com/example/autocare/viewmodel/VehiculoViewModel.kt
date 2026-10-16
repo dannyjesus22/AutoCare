@@ -5,14 +5,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.autocare.data.Vehiculo
 import com.example.autocare.data.VehiculoRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class VehiculoViewModel(
+@HiltViewModel
+class VehiculoViewModel @Inject constructor(
     private val repository: VehiculoRepository
 ) : ViewModel() {
 
