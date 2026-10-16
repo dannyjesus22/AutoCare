@@ -1,9 +1,9 @@
-
 package com.example.autocare.data
 
 import kotlinx.coroutines.flow.Flow
+import javax.inject.Inject
 
-class VehiculoRepository(
+class VehiculoRepository @Inject constructor(
     private val vehiculoDao: VehiculoDao
 ) {
 
@@ -12,7 +12,7 @@ class VehiculoRepository(
     val todosLosVehiculos: Flow<List<Vehiculo>> =
         vehiculoDao.obtenerVehiculos()
 
-    // NUEVO: consultar los vehículos de una cuenta.
+    // Consultar los vehículos de una cuenta.
     fun obtenerVehiculosPorUsuario(
         usuarioId: Int
     ): Flow<List<Vehiculo>> {
@@ -29,7 +29,7 @@ class VehiculoRepository(
         return vehiculoDao.obtenerVehiculoPorId(id)
     }
 
-    // NUEVO: buscar un vehículo de una cuenta específica.
+    // Buscar un vehículo de una cuenta específica.
     suspend fun obtenerVehiculoDeUsuario(
         id: Int,
         usuarioId: Int

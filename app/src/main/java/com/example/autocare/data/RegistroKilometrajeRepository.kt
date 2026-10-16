@@ -4,8 +4,9 @@ package com.example.autocare.data
 import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import javax.inject.Inject
 
-class RegistroKilometrajeRepository(
+class RegistroKilometrajeRepository @Inject constructor(
     private val registroKilometrajeDao: RegistroKilometrajeDao,
     private val vehiculoDao: VehiculoDao,
     private val baseDatos: BaseDatosAutoCare

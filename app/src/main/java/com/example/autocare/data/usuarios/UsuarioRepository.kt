@@ -6,13 +6,14 @@ import android.util.Patterns
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Locale
+import javax.inject.Inject
 
 sealed class ResultadoAutenticacion {
     data class Exito(val usuario: Usuario) : ResultadoAutenticacion()
     data class Error(val mensaje: String) : ResultadoAutenticacion()
 }
 
-class UsuarioRepository(
+class UsuarioRepository @Inject constructor(
     private val usuarioDao: UsuarioDao
 ) {
 

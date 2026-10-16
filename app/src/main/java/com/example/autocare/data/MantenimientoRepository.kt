@@ -1,10 +1,15 @@
 package com.example.autocare.data
 
 import kotlinx.coroutines.flow.Flow
+import javax.inject.Inject
 
-class MantenimientoRepository(private val mantenimientoDao: MantenimientoDao) {
+class MantenimientoRepository @Inject constructor(
+    private val mantenimientoDao: MantenimientoDao
+) {
 
-    fun obtenerMantenimientosPorVehiculo(vehiculoId: Int): Flow<List<Mantenimiento>> {
+    fun obtenerMantenimientosPorVehiculo(
+        vehiculoId: Int
+    ): Flow<List<Mantenimiento>> {
         return mantenimientoDao.obtenerMantenimientosPorVehiculo(vehiculoId)
     }
 
