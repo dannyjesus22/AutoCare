@@ -30,6 +30,7 @@ import com.example.autocare.screens.PantallaMantenimiento
 import com.example.autocare.screens.RegisterScreen
 import com.example.autocare.screens.SplashScreen
 import com.example.autocare.screens.VehicleRegisterScreen
+import com.example.autocare.utils.GeneradorReportePdf
 
 import com.example.autocare.viewmodel.HistorialUiState
 import com.example.autocare.viewmodel.HistorialViewModel
@@ -305,11 +306,21 @@ fun NavegacionPrueba() {
                     )
                 },
                 onGenerarPdf = {
-                    Toast.makeText(
-                        context,
-                        "Generación de PDF próximamente.",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    val vehiculoActual = vehiculos.find { it.id == vehiculoId }
+                    if (vehiculoActual != null) {
+                        GeneradorReportePdf.generarYMostrarReporte(
+                            context = context,
+                            vehiculo = vehiculoActual,
+                            registrosKilometraje = registros.filter { it.vehiculoId == vehiculoId },
+                            mantenimientos = registrosMantenimiento.filter { it.vehiculoId == vehiculoId }
+                        )
+                    } else {
+                        Toast.makeText(
+                            context,
+                            "Selecciona un vehículo primero para exportar el reporte",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
                 }
             )
         }
