@@ -1,5 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.AutoCare" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.AutoCare"
+        parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.AutoCare.Splash"
+        parent="Theme.SplashScreen">
+
+        <item name="windowSplashScreenBackground">#001B4D</item>
+
+        <item name="windowSplashScreenAnimatedIcon">
+            @drawable/autocare_splash
+        </item>
+
+        <item name="postSplashScreenTheme">
+            @style/Theme.AutoCare
+        </item>
+
+    </style>
+
 </resources>
