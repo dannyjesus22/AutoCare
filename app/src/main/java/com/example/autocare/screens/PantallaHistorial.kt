@@ -22,7 +22,9 @@ import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -57,6 +59,7 @@ fun PantallaHistorial(
     vehiculoSeleccionadoId: Int?,
     onSeleccionarVehiculo: (Int) -> Unit,
     estadoHistorial: HistorialUiState,
+    onCambiarEstadoMantenimiento: (Mantenimiento, Boolean) -> Unit = { _, _ -> },
     onGenerarPdf: () -> Unit = {}
 ) {
     var pestanaSeleccionada by remember { mutableIntStateOf(0) }
@@ -189,7 +192,10 @@ fun PantallaHistorial(
                     val mantenimientosDelVehiculo = registrosMantenimiento.filter {
                         it.vehiculoId == vehiculoSeleccionado?.id
                     }
-                    SeccionHistorialMantenimiento(mantenimientos = mantenimientosDelVehiculo)
+                    SeccionHistorialMantenimiento(
+                        mantenimientos = mantenimientosDelVehiculo,
+                        onCambiarEstadoMantenimiento = onCambiarEstadoMantenimiento
+                    )
                 }
             }
 
@@ -200,7 +206,7 @@ fun PantallaHistorial(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(55.dp),
-                enabled = false,
+                enabled = true,
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D47A1))
             ) {
                 Text(text = "Generar reporte PDF", fontSize = 17.sp)
@@ -214,7 +220,6 @@ fun SeccionHistorialKilometraje(registros: List<RegistroKilometraje>) {
     if (registros.isEmpty()) {
         Text("No hay registros de kilometraje.", color = Color.Gray)
     } else {
-        // Ordenamos los registros cronológicamente de más reciente a más antiguo
         val registrosOrdenados = remember(registros) { registros.sortedByDescending { it.id } }
         val formatoFechaHora = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()) }
 
@@ -266,7 +271,10 @@ fun SeccionHistorialKilometraje(registros: List<RegistroKilometraje>) {
 }
 
 @Composable
-fun SeccionHistorialMantenimiento(mantenimientos: List<Mantenimiento>) {
+fun SeccionHistorialMantenimiento(
+    mantenimientos: List<Mantenimiento>,
+    onCambiarEstadoMantenimiento: (Mantenimiento, Boolean) -> Unit
+) {
     if (mantenimientos.isEmpty()) {
         Text(
             text = "No hay registros de mantenimiento para este vehículo.",
@@ -297,21 +305,45 @@ fun SeccionHistorialMantenimiento(mantenimientos: List<Mantenimiento>) {
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF002B66)
                             )
-                            Text(
-                                text = "📅 ${mantenimiento.fecha}",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF0066FF)
-                            )
+
+                            // Etiqueta de Estado (PENDIENTE / REALIZADO)
+                            Surface(
+                                color = if (mantenimiento.completado) Color(0xFF2E7D32) else Color(0xFFE65100),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(
+                                    text = if (mantenimiento.completado) "REALIZADO" else "PENDIENTE",
+                                    color = Color.White,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(6.dp))
+
+                        Text(
+                            text = "📅 Fecha: ${mantenimiento.fecha}",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF0066FF)
+                        )
 
                         Text(
                             text = "Realizado a los: ${mantenimiento.kilometrajeRealizado} km",
                             fontSize = 13.sp,
                             color = Color.DarkGray
                         )
+
+                        mantenimiento.proximoKilometraje?.let { proxKm ->
+                            Text(
+                                text = "🔔 Notificar a los: $proxKm km",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFFD84315)
+                            )
+                        }
 
                         if (mantenimiento.costo > 0) {
                             Text(
@@ -339,6 +371,28 @@ fun SeccionHistorialMantenimiento(mantenimientos: List<Mantenimiento>) {
                                 fontSize = 12.sp,
                                 color = Color.Gray
                             )
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Botón para alternar el estado (Realizado / Pendiente)
+                        if (!mantenimiento.completado) {
+                            Button(
+                                onClick = { onCambiarEstadoMantenimiento(mantenimiento, true) },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text("✓ Marcar como Realizado", fontSize = 13.sp)
+                            }
+                        } else {
+                            OutlinedButton(
+                                onClick = { onCambiarEstadoMantenimiento(mantenimiento, false) },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text("Reabrir Mantenimiento", fontSize = 12.sp, color = Color.Gray)
+                            }
                         }
                     }
                 }

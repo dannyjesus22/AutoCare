@@ -40,9 +40,7 @@ fun PantallaMantenimiento(
     onVolver: () -> Unit
 ) {
     val context = LocalContext.current
-    val notificacionHelper = remember(context) {
-        NotificacionHelper(context)
-    }
+    val notificacionHelper = remember(context) { NotificacionHelper(context) }
 
     val azulPrincipal = Color(0xFF0066FF)
     val azulOscuro = Color(0xFF002B66)
@@ -54,28 +52,20 @@ fun PantallaMantenimiento(
         }
     }
 
-    val fechaHoy = remember {
-        formatoFecha.format(Date())
-    }
+    val fechaHoy = remember { formatoFecha.format(Date()) }
 
-    var vehiculoSeleccionadoId by remember {
-        mutableStateOf<Int?>(null)
-    }
+    var vehiculoSeleccionadoId by remember { mutableStateOf<Int?>(null) }
 
     LaunchedEffect(vehiculos) {
         if (vehiculos.size == 1 && vehiculoSeleccionadoId == null) {
             vehiculoSeleccionadoId = vehiculos.first().id
         }
-
         if (vehiculos.none { it.id == vehiculoSeleccionadoId }) {
             vehiculoSeleccionadoId = vehiculos.firstOrNull()?.id
         }
     }
 
-    val vehiculoSeleccionado = vehiculos.find {
-        it.id == vehiculoSeleccionadoId
-    }
-
+    val vehiculoSeleccionado = vehiculos.find { it.id == vehiculoSeleccionadoId }
     val kmActualNum = vehiculoSeleccionado?.kilometraje ?: 0
 
     var tipoMantenimiento by remember { mutableStateOf("") }
@@ -87,16 +77,9 @@ fun PantallaMantenimiento(
     var recordatorioActivo by remember { mutableStateOf(true) }
     var tipoRecordatorio by remember { mutableStateOf("km") }
     var cadaKmText by remember { mutableStateOf("") }
-    var notificarFaltenKmText by remember { mutableStateOf("") }
-
-    // Fecha independiente para el próximo mantenimiento.
-    var fechaProximoMantenimiento by remember {
-        mutableStateOf("")
-    }
 
     var menuExpandido by remember { mutableStateOf(false) }
 
-    // Solicitar permiso de notificaciones en Android 13+.
     val solicitarPermiso = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { concedido ->
@@ -117,51 +100,24 @@ fun PantallaMantenimiento(
                 Manifest.permission.POST_NOTIFICATIONS
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            solicitarPermiso.launch(
-                Manifest.permission.POST_NOTIFICATIONS
-            )
+            solicitarPermiso.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 
-    val calendarioRealizado = remember {
-        Calendar.getInstance()
-    }
-
-    val calendarioProximo = remember {
-        Calendar.getInstance()
-    }
+    val calendarioRealizado = remember { Calendar.getInstance() }
 
     val datePickerMantenimiento = DatePickerDialog(
         context,
         { _, anio, mes, dia ->
             calendarioRealizado.set(anio, mes, dia)
-            fechaMantenimiento = formatoFecha.format(
-                calendarioRealizado.time
-            )
+            fechaMantenimiento = formatoFecha.format(calendarioRealizado.time)
         },
         calendarioRealizado.get(Calendar.YEAR),
         calendarioRealizado.get(Calendar.MONTH),
         calendarioRealizado.get(Calendar.DAY_OF_MONTH)
     )
 
-    val datePickerProximo = DatePickerDialog(
-        context,
-        { _, anio, mes, dia ->
-            calendarioProximo.set(anio, mes, dia)
-            fechaProximoMantenimiento = formatoFecha.format(
-                calendarioProximo.time
-            )
-        },
-        calendarioProximo.get(Calendar.YEAR),
-        calendarioProximo.get(Calendar.MONTH),
-        calendarioProximo.get(Calendar.DAY_OF_MONTH)
-    )
-
-    datePickerProximo.datePicker.minDate =
-        System.currentTimeMillis() - 1000L
-
     val cadaKmNum = cadaKmText.toIntOrNull() ?: 0
-
     val proximoKm = kmActualNum.toLong() + cadaKmNum.toLong()
 
     Column(
@@ -170,7 +126,6 @@ fun PantallaMantenimiento(
             .background(Color(0xFF004080))
             .verticalScroll(rememberScrollState())
     ) {
-
         // ENCABEZADO
         Row(
             modifier = Modifier
@@ -179,11 +134,7 @@ fun PantallaMantenimiento(
             verticalAlignment = Alignment.CenterVertically
         ) {
             TextButton(onClick = onVolver) {
-                Text(
-                    text = "←",
-                    fontSize = 24.sp,
-                    color = Color.White
-                )
+                Text(text = "←", fontSize = 24.sp, color = Color.White)
             }
 
             Column(modifier = Modifier.weight(1f)) {
@@ -193,7 +144,6 @@ fun PantallaMantenimiento(
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
-
                 Text(
                     text = "Agrega la información del mantenimiento",
                     fontSize = 13.sp,
@@ -205,13 +155,8 @@ fun PantallaMantenimiento(
         // CONTENEDOR PRINCIPAL
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(
-                topStart = 28.dp,
-                topEnd = 28.dp
-            ),
-            colors = CardDefaults.cardColors(
-                containerColor = Color.White
-            )
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
         ) {
             Column(
                 modifier = Modifier
@@ -219,7 +164,6 @@ fun PantallaMantenimiento(
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-
                 // SELECCIÓN DEL VEHÍCULO
                 Text(
                     text = "Selecciona el vehículo",
@@ -231,46 +175,28 @@ fun PantallaMantenimiento(
                 ExposedDropdownMenuBox(
                     expanded = menuExpandido,
                     onExpandedChange = {
-                        if (vehiculos.isNotEmpty()) {
-                            menuExpandido = !menuExpandido
-                        }
+                        if (vehiculos.isNotEmpty()) menuExpandido = !menuExpandido
                     }
                 ) {
                     OutlinedTextField(
-                        value = vehiculoSeleccionado?.let {
-                            "${it.marca} ${it.modelo} ${it.anio}"
-                        } ?: "",
+                        value = vehiculoSeleccionado?.let { "${it.marca} ${it.modelo} ${it.anio}" } ?: "",
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Vehículo") },
-                        placeholder = {
-                            Text("Selecciona un vehículo")
-                        },
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(
-                                expanded = menuExpandido
-                            )
-                        },
+                        placeholder = { Text("Selecciona un vehículo") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = menuExpandido) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(
-                                ExposedDropdownMenuAnchorType.PrimaryNotEditable
-                            )
+                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                     )
 
                     ExposedDropdownMenu(
                         expanded = menuExpandido,
-                        onDismissRequest = {
-                            menuExpandido = false
-                        }
+                        onDismissRequest = { menuExpandido = false }
                     ) {
                         vehiculos.forEach { vehiculo ->
                             DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        "${vehiculo.marca} ${vehiculo.modelo} ${vehiculo.anio}"
-                                    )
-                                },
+                                text = { Text("${vehiculo.marca} ${vehiculo.modelo} ${vehiculo.anio}") },
                                 onClick = {
                                     vehiculoSeleccionadoId = vehiculo.id
                                     menuExpandido = false
@@ -293,37 +219,28 @@ fun PantallaMantenimiento(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = fondoTarjeta
-                        )
+                        colors = CardDefaults.cardColors(containerColor = fondoTarjeta)
                     ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp)
-                        ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
                             Text(
                                 text = "${vehiculo.marca} ${vehiculo.modelo}",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = azulOscuro
                             )
-
                             Text(
                                 text = "Año: ${vehiculo.anio}",
                                 fontSize = 14.sp,
                                 color = Color.Gray
                             )
-
                             Spacer(modifier = Modifier.height(6.dp))
-
                             Text(
                                 text = vehiculo.tipoVehiculo,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = azulPrincipal
                             )
-
                             Spacer(modifier = Modifier.height(6.dp))
-
                             Text(
                                 text = "Kilometraje actual: ${vehiculo.kilometraje} km",
                                 fontSize = 13.sp,
@@ -340,24 +257,18 @@ fun PantallaMantenimiento(
                     label = "Tipo de mantenimiento",
                     placeholder = "Ej: Cambio de aceite y filtro",
                     valor = tipoMantenimiento,
-                    onValorChange = {
-                        tipoMantenimiento = it
-                    }
+                    onValorChange = { tipoMantenimiento = it }
                 )
 
-                // FECHA REALIZADA
+                // FECHA DEL MANTENIMIENTO
                 CampoConSimbolo(
                     simbolo = "📅",
                     label = "Fecha del mantenimiento",
                     placeholder = "DD/MM/YYYY",
                     valor = fechaMantenimiento,
-                    onValorChange = {
-                        fechaMantenimiento = it
-                    },
+                    onValorChange = { fechaMantenimiento = it },
                     simboloFinal = "🗓️",
-                    onClickIconoFinal = {
-                        datePickerMantenimiento.show()
-                    }
+                    onClickIconoFinal = { datePickerMantenimiento.show() }
                 )
 
                 // KILOMETRAJE ACTUAL
@@ -377,9 +288,7 @@ fun PantallaMantenimiento(
                     label = "Costo (opcional)",
                     placeholder = "Ej: 35.00",
                     valor = costoText,
-                    onValorChange = {
-                        costoText = it
-                    },
+                    onValorChange = { costoText = it },
                     sufijo = "USD",
                     keyboardType = KeyboardType.Decimal
                 )
@@ -390,9 +299,7 @@ fun PantallaMantenimiento(
                     label = "Taller (opcional)",
                     placeholder = "Ej: Taller Automotriz XYZ",
                     valor = tallerText,
-                    onValorChange = {
-                        tallerText = it
-                    }
+                    onValorChange = { tallerText = it }
                 )
 
                 // OBSERVACIONES
@@ -403,12 +310,9 @@ fun PantallaMantenimiento(
                         placeholder = "Ej: Cambio de aceite 10W-40 y filtro",
                         valor = observacionesText,
                         onValorChange = {
-                            if (it.length <= 200) {
-                                observacionesText = it
-                            }
+                            if (it.length <= 200) observacionesText = it
                         }
                     )
-
                     Text(
                         text = "${observacionesText.length}/200",
                         fontSize = 11.sp,
@@ -423,159 +327,101 @@ fun PantallaMantenimiento(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = fondoTarjeta
-                    )
+                    colors = CardDefaults.cardColors(containerColor = fondoTarjeta)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text("🔔", fontSize = 22.sp)
-
-                            Spacer(
-                                modifier = Modifier.width(12.dp)
-                            )
-
-                            Column(
-                                modifier = Modifier.weight(1f)
-                            ) {
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = "Configurar recordatorio",
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 16.sp,
                                     color = azulOscuro
                                 )
-
                                 Text(
-                                    text = "Define cuándo te avisaremos del próximo mantenimiento",
+                                    text = "Define cuándo te avisaremos del mantenimiento",
                                     fontSize = 11.sp,
                                     color = Color.Gray
                                 )
                             }
-
                             Switch(
                                 checked = recordatorioActivo,
                                 onCheckedChange = {
                                     recordatorioActivo = it
-
-                                    if (it) {
-                                        verificarPermisoNotificaciones()
-                                    }
+                                    if (it) verificarPermisoNotificaciones()
                                 },
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = azulPrincipal
-                                )
+                                colors = SwitchDefaults.colors(checkedThumbColor = azulPrincipal)
                             )
                         }
 
                         if (recordatorioActivo) {
-                            Spacer(
-                                modifier = Modifier.height(12.dp)
-                            )
+                            Spacer(modifier = Modifier.height(12.dp))
 
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(
-                                        Color(0xFFE2EDF9),
-                                        RoundedCornerShape(10.dp)
-                                    )
+                                    .background(Color(0xFFE2EDF9), RoundedCornerShape(10.dp))
                                     .padding(4.dp)
                             ) {
                                 Button(
-                                    onClick = {
-                                        tipoRecordatorio = "km"
-                                    },
+                                    onClick = { tipoRecordatorio = "km" },
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(8.dp),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor =
-                                            if (tipoRecordatorio == "km")
-                                                azulPrincipal
-                                            else
-                                                Color.Transparent,
-                                        contentColor =
-                                            if (tipoRecordatorio == "km")
-                                                Color.White
-                                            else
-                                                Color.Gray
+                                        containerColor = if (tipoRecordatorio == "km") azulPrincipal else Color.Transparent,
+                                        contentColor = if (tipoRecordatorio == "km") Color.White else Color.Gray
                                     )
                                 ) {
-                                    Text(
-                                        "Por kilometraje",
-                                        fontSize = 12.sp
-                                    )
+                                    Text("Por kilometraje", fontSize = 12.sp)
                                 }
 
                                 Button(
-                                    onClick = {
-                                        tipoRecordatorio = "fecha"
-                                    },
+                                    onClick = { tipoRecordatorio = "fecha" },
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(8.dp),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor =
-                                            if (tipoRecordatorio == "fecha")
-                                                azulPrincipal
-                                            else
-                                                Color.Transparent,
-                                        contentColor =
-                                            if (tipoRecordatorio == "fecha")
-                                                Color.White
-                                            else
-                                                Color.Gray
+                                        containerColor = if (tipoRecordatorio == "fecha") azulPrincipal else Color.Transparent,
+                                        contentColor = if (tipoRecordatorio == "fecha") Color.White else Color.Gray
                                     )
                                 ) {
-                                    Text(
-                                        "Por fecha",
-                                        fontSize = 12.sp
-                                    )
+                                    Text("Por fecha", fontSize = 12.sp)
                                 }
                             }
 
-                            Spacer(
-                                modifier = Modifier.height(12.dp)
-                            )
+                            Spacer(modifier = Modifier.height(12.dp))
 
                             if (tipoRecordatorio == "km") {
-
                                 CampoConSimbolo(
                                     simbolo = "🔄",
                                     label = "Cada (kilómetros)",
                                     placeholder = "Ej: 5000",
                                     valor = cadaKmText,
-                                    onValorChange = {
-                                        cadaKmText = it
-                                    },
+                                    onValorChange = { cadaKmText = it },
                                     sufijo = "km",
                                     keyboardType = KeyboardType.Number
                                 )
 
-                                Spacer(
-                                    modifier = Modifier.height(8.dp)
-                                )
+                                Spacer(modifier = Modifier.height(8.dp))
 
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(10.dp),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = Color(0xFFD9E8F9)
-                                    )
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFD9E8F9))
                                 ) {
                                     Row(
                                         modifier = Modifier.padding(12.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            text = "🚩 Próximo mantenimiento: ",
+                                            text = "🚩 Notificar al alcanzar: ",
                                             fontSize = 13.sp,
                                             color = azulOscuro
                                         )
-
                                         Text(
                                             text = "$proximoKm km",
                                             fontSize = 13.sp,
@@ -585,66 +431,21 @@ fun PantallaMantenimiento(
                                     }
                                 }
 
-                                Spacer(
-                                    modifier = Modifier.height(12.dp)
-                                )
-
-                                CampoConSimbolo(
-                                    simbolo = "🔔",
-                                    label = "Notificarme cuando falten",
-                                    placeholder = "Ej: 500",
-                                    valor = notificarFaltenKmText,
-                                    onValorChange = {
-                                        notificarFaltenKmText = it
-                                    },
-                                    sufijo = "km",
-                                    keyboardType = KeyboardType.Number
-                                )
-
                             } else {
-
-                                CampoConSimbolo(
-                                    simbolo = "📅",
-                                    label = "Fecha del próximo mantenimiento",
-                                    placeholder = "DD/MM/YYYY",
-                                    valor = fechaProximoMantenimiento,
-                                    onValorChange = {
-                                        fechaProximoMantenimiento = it
-                                    },
-                                    simboloFinal = "🗓️",
-                                    onClickIconoFinal = {
-                                        datePickerProximo.show()
-                                    }
-                                )
-
-                                Spacer(
-                                    modifier = Modifier.height(8.dp)
-                                )
-
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(10.dp),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = Color(0xFFD9E8F9)
-                                    )
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFD9E8F9))
                                 ) {
-                                    Column(
-                                        modifier = Modifier.padding(14.dp)
-                                    ) {
+                                    Column(modifier = Modifier.padding(14.dp)) {
                                         Text(
-                                            text = "📅 Se enviará recordatorio para la fecha:",
+                                            text = "📅 Se notificará en la fecha registrada arriba:",
                                             fontSize = 12.sp,
                                             color = azulOscuro
                                         )
-
-                                        Spacer(
-                                            modifier = Modifier.height(4.dp)
-                                        )
-
+                                        Spacer(modifier = Modifier.height(4.dp))
                                         Text(
-                                            text = fechaProximoMantenimiento.ifBlank {
-                                                "Selecciona una fecha"
-                                            },
+                                            text = fechaMantenimiento,
                                             fontSize = 16.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = azulOscuro
@@ -656,30 +457,19 @@ fun PantallaMantenimiento(
                     }
                 }
 
-                Spacer(
-                    modifier = Modifier.height(12.dp)
-                )
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // GUARDAR MANTENIMIENTO
                 Button(
                     onClick = {
                         val vehiculo = vehiculoSeleccionado
-
                         if (vehiculo == null) {
-                            Toast.makeText(
-                                context,
-                                "Selecciona un vehículo primero",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            Toast.makeText(context, "Selecciona un vehículo primero", Toast.LENGTH_SHORT).show()
                             return@Button
                         }
 
                         if (tipoMantenimiento.isBlank()) {
-                            Toast.makeText(
-                                context,
-                                "Escribe el tipo de mantenimiento",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            Toast.makeText(context, "Escribe el tipo de mantenimiento", Toast.LENGTH_SHORT).show()
                             return@Button
                         }
 
@@ -690,22 +480,13 @@ fun PantallaMantenimiento(
                         }
 
                         if (fechaRealizada == null) {
-                            Toast.makeText(
-                                context,
-                                "Ingresa una fecha de mantenimiento válida",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            Toast.makeText(context, "Ingresa una fecha válida", Toast.LENGTH_SHORT).show()
                             return@Button
                         }
 
                         val costoDouble = costoText.toDoubleOrNull() ?: 0.0
-
                         if (costoDouble < 0) {
-                            Toast.makeText(
-                                context,
-                                "El costo no puede ser negativo",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            Toast.makeText(context, "El costo no puede ser negativo", Toast.LENGTH_SHORT).show()
                             return@Button
                         }
 
@@ -714,101 +495,30 @@ fun PantallaMantenimiento(
 
                         if (recordatorioActivo) {
                             if (tipoRecordatorio == "fecha") {
-                                val fechaProxima = try {
-                                    formatoFecha.parse(
-                                        fechaProximoMantenimiento
-                                    )
-                                } catch (e: Exception) {
-                                    null
-                                }
-
-                                if (fechaProxima == null) {
-                                    Toast.makeText(
-                                        context,
-                                        "Selecciona la fecha del próximo mantenimiento",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                    return@Button
-                                }
-
-                                val calendarioAviso = Calendar.getInstance().apply {
-                                    time = fechaProxima
-                                    set(Calendar.HOUR_OF_DAY, 9)
-                                    set(Calendar.MINUTE, 0)
-                                    set(Calendar.SECOND, 0)
-                                }
-
-                                if (
-                                    calendarioAviso.timeInMillis <=
-                                    System.currentTimeMillis()
-                                ) {
-                                    Toast.makeText(
-                                        context,
-                                        "La fecha del recordatorio debe ser futura",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                    return@Button
-                                }
-
-                                proximaFechaFinal =
-                                    fechaProximoMantenimiento
-
+                                proximaFechaFinal = fechaMantenimiento
                             } else {
                                 val cadaKm = cadaKmText.toIntOrNull()
-
                                 if (cadaKm == null || cadaKm <= 0) {
-                                    Toast.makeText(
-                                        context,
-                                        "Ingresa una cantidad válida de kilómetros",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
+                                    Toast.makeText(context, "Ingresa una cantidad válida de kilómetros", Toast.LENGTH_SHORT).show()
                                     return@Button
                                 }
 
-                                val faltanKm =
-                                    notificarFaltenKmText.toIntOrNull() ?: 0
-
-                                if (faltanKm < 0 || faltanKm >= cadaKm) {
-                                    Toast.makeText(
-                                        context,
-                                        "Los kilómetros de anticipación deben ser menores al intervalo",
-                                        Toast.LENGTH_LONG
-                                    ).show()
+                                val kilometrajeAviso = kmActualNum.toLong() + cadaKm.toLong()
+                                if (kilometrajeAviso > Int.MAX_VALUE) {
+                                    Toast.makeText(context, "El kilometraje supera el límite permitido", Toast.LENGTH_SHORT).show()
                                     return@Button
                                 }
 
-                                val kilometrajeAviso =
-                                    kmActualNum.toLong() +
-                                            cadaKm.toLong() -
-                                            faltanKm.toLong()
-
-                                if (
-                                    kilometrajeAviso >
-                                    Int.MAX_VALUE
-                                ) {
-                                    Toast.makeText(
-                                        context,
-                                        "El kilometraje supera el límite permitido",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                    return@Button
-                                }
-
-                                proximoKmFinal =
-                                    kilometrajeAviso.toInt()
+                                proximoKmFinal = kilometrajeAviso.toInt()
                             }
                         }
 
                         if (viewModel == null) {
-                            Toast.makeText(
-                                context,
-                                "No se pudo acceder al registro de mantenimiento",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            Toast.makeText(context, "No se pudo acceder al registro de mantenimiento", Toast.LENGTH_SHORT).show()
                             return@Button
                         }
 
-                        // Guardar el mantenimiento en Room.
+                        // Guardar en Room con estado completado = false (PENDIENTE)
                         viewModel.guardarMantenimiento(
                             vehiculoId = vehiculo.id,
                             titulo = tipoMantenimiento.trim(),
@@ -822,51 +532,29 @@ fun PantallaMantenimiento(
                                 "${tallerText.trim()} - ${observacionesText.trim()}"
                             } else {
                                 observacionesText.trim()
-                            }
+                            },
+                            completado = false
                         )
 
-                        if (
-                            recordatorioActivo &&
-                            tipoRecordatorio == "fecha"
-                        ) {
+                        if (recordatorioActivo && tipoRecordatorio == "fecha") {
                             verificarPermisoNotificaciones()
-
-                            val programado =
-                                notificacionHelper.programarNotificacionPorFecha(
-                                    fechaStr = fechaProximoMantenimiento,
-                                    titulo = "Recordatorio de Mantenimiento",
-                                    mensaje = "Hoy corresponde realizar: $tipoMantenimiento"
-                                )
-
-                            if (!programado) {
-                                Toast.makeText(
-                                    context,
-                                    "Mantenimiento guardado, pero no se pudo programar la alerta",
-                                    Toast.LENGTH_LONG
-                                ).show()
-
-                                onVolver()
-                                return@Button
-                            }
+                            notificacionHelper.programarNotificacionPorFecha(
+                                fechaStr = fechaMantenimiento,
+                                titulo = "Recordatorio de Mantenimiento",
+                                mensaje = "Hoy corresponde realizar: $tipoMantenimiento"
+                            )
                         } else if (recordatorioActivo) {
                             verificarPermisoNotificaciones()
                         }
 
-                        Toast.makeText(
-                            context,
-                            "Mantenimiento guardado correctamente",
-                            Toast.LENGTH_SHORT
-                        ).show()
-
+                        Toast.makeText(context, "Mantenimiento registrado como Pendiente", Toast.LENGTH_SHORT).show()
                         onVolver()
                     },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(54.dp),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = azulPrincipal
-                    ),
+                    colors = ButtonDefaults.buttonColors(containerColor = azulPrincipal),
                     enabled = vehiculoSeleccionado != null
                 ) {
                     Text(
@@ -901,18 +589,13 @@ fun CampoConSimbolo(
         Card(
             modifier = Modifier.size(44.dp),
             shape = RoundedCornerShape(10.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = Color(0xFFF0F4F8)
-            )
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFF0F4F8))
         ) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = simbolo,
-                    fontSize = 18.sp
-                )
+                Text(text = simbolo, fontSize = 18.sp)
             }
         }
 
@@ -921,23 +604,13 @@ fun CampoConSimbolo(
         OutlinedTextField(
             value = valor,
             onValueChange = onValorChange,
-            label = {
-                Text(label, fontSize = 12.sp)
-            },
-            placeholder = {
-                Text(
-                    placeholder,
-                    fontSize = 12.sp,
-                    color = Color.LightGray
-                )
-            },
+            label = { Text(label, fontSize = 12.sp) },
+            placeholder = { Text(placeholder, fontSize = 12.sp, color = Color.LightGray) },
             singleLine = true,
             modifier = Modifier.weight(1f),
             enabled = enabled,
             readOnly = readOnly,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = keyboardType
-            ),
+            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             shape = RoundedCornerShape(10.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = Color(0xFF0066FF),
@@ -958,15 +631,8 @@ fun CampoConSimbolo(
                         modifier = Modifier.padding(end = 12.dp)
                     )
                 } else if (simboloFinal != null) {
-                    IconButton(
-                        onClick = {
-                            onClickIconoFinal?.invoke()
-                        }
-                    ) {
-                        Text(
-                            text = simboloFinal,
-                            fontSize = 16.sp
-                        )
+                    IconButton(onClick = { onClickIconoFinal?.invoke() }) {
+                        Text(text = simboloFinal, fontSize = 16.sp)
                     }
                 }
             }
