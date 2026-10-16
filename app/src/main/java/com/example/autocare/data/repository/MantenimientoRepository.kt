@@ -1,0 +1,33 @@
+package com.example.autocare.data.repository
+
+import com.example.autocare.data.dao.MantenimientoDao
+import com.example.autocare.data.entities.Mantenimiento
+import kotlinx.coroutines.flow.Flow
+import javax.inject.Inject
+
+class MantenimientoRepository @Inject constructor(
+    private val mantenimientoDao: MantenimientoDao
+) {
+
+    fun obtenerMantenimientosPorVehiculo(
+        vehiculoId: Int
+    ): Flow<List<Mantenimiento>> {
+        return mantenimientoDao.obtenerMantenimientosPorVehiculo(vehiculoId)
+    }
+
+    suspend fun obtenerMantenimientoPorId(id: Int): Mantenimiento? {
+        return mantenimientoDao.obtenerMantenimientoPorId(id)
+    }
+
+    suspend fun insertarMantenimiento(mantenimiento: Mantenimiento) {
+        mantenimientoDao.insertarMantenimiento(mantenimiento)
+    }
+
+    suspend fun actualizarMantenimiento(mantenimiento: Mantenimiento) {
+        mantenimientoDao.actualizarMantenimiento(mantenimiento)
+    }
+
+    suspend fun eliminarMantenimiento(mantenimiento: Mantenimiento) {
+        mantenimientoDao.eliminarMantenimiento(mantenimiento)
+    }
+}

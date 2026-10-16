@@ -18,28 +18,28 @@ import androidx.navigation.compose.rememberNavController
 import androidx.hilt.navigation.compose.hiltViewModel
 
 import com.example.autocare.AplicacionAutoCare
-import com.example.autocare.data.Mantenimiento
-import com.example.autocare.data.Vehiculo
-import com.example.autocare.data.usuarios.ResultadoAutenticacion
+import com.example.autocare.data.entities.Mantenimiento
+import com.example.autocare.data.entities.Vehiculo
+import com.example.autocare.data.repository.ResultadoAutenticacion
 
-import com.example.autocare.screens.HomeScreen
-import com.example.autocare.screens.LoginScreen
-import com.example.autocare.screens.PantallaConfiguracion
-import com.example.autocare.screens.PantallaHistorial
-import com.example.autocare.screens.PantallaKilometraje
-import com.example.autocare.screens.PantallaMantenimiento
-import com.example.autocare.screens.RegisterScreen
-import com.example.autocare.screens.SplashScreen
-import com.example.autocare.screens.VehicleRegisterScreen
+import com.example.autocare.ui.screens.HomeScreen
+import com.example.autocare.ui.screens.LoginScreen
+import com.example.autocare.ui.screens.PantallaConfiguracion
+import com.example.autocare.ui.screens.PantallaHistorial
+import com.example.autocare.ui.screens.PantallaKilometraje
+import com.example.autocare.ui.screens.PantallaMantenimiento
+import com.example.autocare.ui.screens.RegisterScreen
+import com.example.autocare.ui.screens.SplashScreen
+import com.example.autocare.ui.screens.VehicleRegisterScreen
 import com.example.autocare.utils.GeneradorReportePdf
 
-import com.example.autocare.viewmodel.HistorialUiState
-import com.example.autocare.viewmodel.HistorialViewModel
+import com.example.autocare.ui.viewmodel.HistorialUiState
+import com.example.autocare.ui.viewmodel.HistorialViewModel
 
-import com.example.autocare.viewmodel.MantenimientoViewModel
-import com.example.autocare.viewmodel.RegistroKilometrajeViewModel
-import com.example.autocare.viewmodel.VehiculoViewModel
-import com.example.autocare.viewmodel.usuarios.UsuarioViewModel
+import com.example.autocare.ui.viewmodel.MantenimientoViewModel
+import com.example.autocare.ui.viewmodel.RegistroKilometrajeViewModel
+import com.example.autocare.ui.viewmodel.VehiculoViewModel
+import com.example.autocare.ui.viewmodel.usuarios.UsuarioViewModel
 
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map

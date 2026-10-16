@@ -3,10 +3,10 @@ package com.example.autocare
 
 import android.app.Application
 import com.example.autocare.data.ConfiguracionDataStore
-import com.example.autocare.data.VehiculoRepository
-import com.example.autocare.data.RegistroKilometrajeRepository
-import com.example.autocare.data.MantenimientoRepository
-import com.example.autocare.data.usuarios.UsuarioRepository
+import com.example.autocare.data.repository.VehiculoRepository
+import com.example.autocare.data.repository.RegistroKilometrajeRepository
+import com.example.autocare.data.repository.MantenimientoRepository
+import com.example.autocare.data.repository.UsuarioRepository
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 

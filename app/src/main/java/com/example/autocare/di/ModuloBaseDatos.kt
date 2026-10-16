@@ -5,10 +5,10 @@ import androidx.room.Room
 import com.example.autocare.data.BaseDatosAutoCare
 import com.example.autocare.data.MIGRACION_1_2
 import com.example.autocare.data.MIGRACION_2_3
-import com.example.autocare.data.VehiculoDao
-import com.example.autocare.data.RegistroKilometrajeDao
-import com.example.autocare.data.MantenimientoDao
-import com.example.autocare.data.usuarios.UsuarioDao
+import com.example.autocare.data.dao.VehiculoDao
+import com.example.autocare.data.dao.RegistroKilometrajeDao
+import com.example.autocare.data.dao.MantenimientoDao
+import com.example.autocare.data.dao.UsuarioDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
