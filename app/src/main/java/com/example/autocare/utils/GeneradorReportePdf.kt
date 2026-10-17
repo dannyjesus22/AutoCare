@@ -18,6 +18,13 @@ import java.util.Locale
 
 object GeneradorReportePdf {
 
+    private data class FilaKilometraje(
+        val fecha: Long,
+        val kmAnterior: Int,
+        val nuevoKm: Int,
+        val recorrido: Int
+    )
+
     fun generarYMostrarReporte(
         context: Context,
         vehiculo: Vehiculo,
@@ -113,25 +120,47 @@ object GeneradorReportePdf {
             y += 15f
 
             val formatoFecha = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+
+            // Orden cronológico ascendente (id menor primero)
             val registrosCronologicos = registrosKilometraje.sortedBy { it.id }
+            val filasAMostrar = mutableListOf<FilaKilometraje>()
 
-            registrosCronologicos.sortedByDescending { it.id }.forEach { reg ->
+            for (i in registrosCronologicos.indices) {
+                val regActual = registrosCronologicos[i]
+                val nuevo = regActual.kilometrajeActual
+
+                if (i > 0) {
+                    val regAnterior = registrosCronologicos[i - 1]
+                    val kmAnt = regAnterior.kilometrajeActual
+                    val rec = nuevo - kmAnt
+                    filasAMostrar.add(FilaKilometraje(regActual.fecha, kmAnt, nuevo, rec))
+                } else {
+                    // Primer registro en la base de datos (i == 0)
+                    val residuo = nuevo % 10000
+                    val kmAnt = if (residuo in 1..9999) {
+                        nuevo - residuo
+                    } else if (registrosCronologicos.size > 1) {
+                        val pasoSiguiente = registrosCronologicos[1].kilometrajeActual - nuevo
+                        if (pasoSiguiente in 1..<nuevo) nuevo - pasoSiguiente else nuevo
+                    } else {
+                        nuevo
+                    }
+
+                    val rec = nuevo - kmAnt
+                    filasAMostrar.add(FilaKilometraje(regActual.fecha, kmAnt, nuevo, rec))
+                }
+            }
+
+            // Se muestran en el PDF ordenadas de forma descendente (la más reciente arriba)
+            filasAMostrar.sortedByDescending { it.fecha }.forEach { fila ->
                 verificarEspacio(20f)
-                val fechaStr = formatoFecha.format(Date(reg.fecha))
-                val indiceActual = registrosCronologicos.indexOf(reg)
-                val regAnterior = registrosCronologicos.getOrNull(indiceActual - 1)
-
-                // Si existe un registro anterior, toma su valor; de lo contrario usa el kilometraje base inicial
-                val kmAnteriorVal = regAnterior?.kilometrajeActual ?: reg.kilometrajeActual
-                val kmAnteriorTexto = "$kmAnteriorVal km"
-
-                // El recorrido se calcula contra el registro previo (o es 0 para la lectura base inicial de configuración)
-                val recorridoVal = if (regAnterior != null) (reg.kilometrajeActual - regAnterior.kilometrajeActual) else 0
-                val recorridoTexto = if (recorridoVal > 0) "+$recorridoVal km" else "$recorridoVal km"
+                val fechaStr = formatoFecha.format(Date(fila.fecha))
+                val kmAnteriorTexto = "${fila.kmAnterior} km"
+                val recorridoTexto = if (fila.recorrido > 0) "+${fila.recorrido} km" else "${fila.recorrido} km"
 
                 canvas.drawText(fechaStr, 40f, y, paintTexto)
                 canvas.drawText(kmAnteriorTexto, 180f, y, paintTexto)
-                canvas.drawText("${reg.kilometrajeActual} km", 300f, y, paintTextoBold)
+                canvas.drawText("${fila.nuevoKm} km", 300f, y, paintTextoBold)
                 canvas.drawText(recorridoTexto, 430f, y, paintTextoBold)
                 y += 16f
             }
