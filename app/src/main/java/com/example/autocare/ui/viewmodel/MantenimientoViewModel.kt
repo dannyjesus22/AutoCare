@@ -106,7 +106,8 @@ class MantenimientoViewModel @Inject constructor(
                         val notificacionHelper = NotificacionHelper(context)
                         notificacionHelper.enviarNotificacionMantenimiento(
                             titulo = "Recordatorio de Mantenimiento Pendiente",
-                            mensaje = "Tu vehículo alcanzó los $nuevoKilometraje km. Tienes pendiente: ${mantenimiento.titulo}"
+                            mensaje = "Tu vehículo alcanzó los $nuevoKilometraje km. Tienes pendiente: ${mantenimiento.titulo}",
+                            notificationId = mantenimiento.id
                         )
                     }
                 }

@@ -36,7 +36,7 @@ class NotificacionHelper(private val context: Context) {
             val canal = NotificationChannel(
                 CHANNEL_ID,
                 CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_HIGH // Alta importancia para que se muestre como banner flotante
+                NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = CHANNEL_DESC
                 enableVibration(true)
@@ -52,15 +52,13 @@ class NotificacionHelper(private val context: Context) {
         mensaje: String,
         notificationId: Int = 1001
     ) {
-        // 1. Verificar si las notificaciones están activadas en DataStore antes de enviar
         val dataStore = ConfiguracionDataStore(context)
         val notificacionesActivadas = runBlocking { dataStore.notificacionesActivadas.first() }
 
         if (!notificacionesActivadas) {
-            return // Si el usuario desactivó las notificaciones en la configuración, no se envía nada.
+            return
         }
 
-        // 2. Verificar permiso en Android 13+
         if (
             Build.VERSION.SDK_INT >= 33 &&
             ContextCompat.checkSelfPermission(
@@ -71,12 +69,10 @@ class NotificacionHelper(private val context: Context) {
             return
         }
 
-        // 3. Crear notificación expandible con BigTextStyle para leer el texto completo
         val notificacion = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_alert)
             .setContentTitle(titulo)
             .setContentText(mensaje)
-            // Estilo expandible: permite desplegar la notificación para leer toda la información
             .setStyle(
                 NotificationCompat.BigTextStyle()
                     .bigText(mensaje)
@@ -94,7 +90,9 @@ class NotificacionHelper(private val context: Context) {
     fun programarNotificacionPorFecha(
         fechaStr: String,
         titulo: String,
-        mensaje: String
+        mensaje: String,
+        hora: Int = 9,
+        minuto: Int = 0
     ): Boolean {
         return try {
             val formato = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).apply {
@@ -105,8 +103,8 @@ class NotificacionHelper(private val context: Context) {
 
             val calendario = Calendar.getInstance().apply {
                 time = fecha
-                set(Calendar.HOUR_OF_DAY, 9)
-                set(Calendar.MINUTE, 0)
+                set(Calendar.HOUR_OF_DAY, hora)
+                set(Calendar.MINUTE, minuto)
                 set(Calendar.SECOND, 0)
                 set(Calendar.MILLISECOND, 0)
             }
@@ -158,13 +156,11 @@ class NotificacionReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         val dataStore = ConfiguracionDataStore(context)
-
-        // Comprueba si los recordatorios o notificaciones generales están activos en DataStore
         val notificacionesActivadas = runBlocking { dataStore.notificacionesActivadas.first() }
         val recordatoriosActivados = runBlocking { dataStore.recordatoriosActivados.first() }
 
         if (!notificacionesActivadas || !recordatoriosActivados) {
-            return // Si están desactivados en la configuración, no ejecuta el disparo
+            return
         }
 
         val titulo = intent.getStringExtra("titulo") ?: "Recordatorio de Mantenimiento"

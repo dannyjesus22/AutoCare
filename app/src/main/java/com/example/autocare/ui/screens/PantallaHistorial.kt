@@ -229,8 +229,6 @@ fun SeccionHistorialKilometraje(registros: List<RegistroKilometraje>) {
             registrosOrdenados.forEachIndexed { index, reg ->
                 val regAnterior = registrosOrdenados.getOrNull(index + 1)
 
-                // Si existe un registro anterior en la lista, calcula la diferencia.
-                // Si no existe (es el primer registro), deduce los km ingresados restando la base de configuración.
                 val recorrido = if (regAnterior != null) {
                     reg.kilometrajeActual - regAnterior.kilometrajeActual
                 } else {
@@ -336,12 +334,29 @@ fun SeccionHistorialMantenimiento(
 
                         Spacer(modifier = Modifier.height(6.dp))
 
-                        Text(
-                            text = "📅 Fecha: ${mantenimiento.fecha}",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF0066FF)
-                        )
+                        // ENCABEZADO DE FECHA UNIFICADO
+                        if (mantenimiento.proximoKilometraje != null) {
+                            Text(
+                                text = "📅 Fecha Aproximada: ${mantenimiento.fecha}",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF0066FF)
+                            )
+                        } else if (!mantenimiento.proximaFecha.isNullOrBlank()) {
+                            Text(
+                                text = "📅 Fecha Programada: ${mantenimiento.proximaFecha}",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF0066FF)
+                            )
+                        } else {
+                            Text(
+                                text = "📅 Fecha: ${mantenimiento.fecha}",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF0066FF)
+                            )
+                        }
 
                         Text(
                             text = "📍 Registrado inicialmente a los: ${mantenimiento.kilometrajeRealizado} km",
@@ -359,9 +374,17 @@ fun SeccionHistorialMantenimiento(
                             )
                         }
 
-                        mantenimiento.proximoKilometraje?.let { proxKm ->
+                        // INDICADOR DE RECORDATORIO
+                        if (mantenimiento.proximoKilometraje != null) {
                             Text(
-                                text = "🔔 Notificar a los: $proxKm km",
+                                text = "🔔 Recordatorio por Km: A los ${mantenimiento.proximoKilometraje} km",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFFD84315)
+                            )
+                        } else if (!mantenimiento.proximaFecha.isNullOrBlank()) {
+                            Text(
+                                text = "🔔 Recordatorio por Fecha activado",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,
                                 color = Color(0xFFD84315)
