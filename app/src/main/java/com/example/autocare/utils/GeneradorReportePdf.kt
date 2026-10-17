@@ -7,9 +7,9 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import androidx.core.content.FileProvider
-import com.example.autocare.data.Mantenimiento
-import com.example.autocare.data.RegistroKilometraje
-import com.example.autocare.data.Vehiculo
+import com.example.autocare.data.entities.Mantenimiento
+import com.example.autocare.data.entities.RegistroKilometraje
+import com.example.autocare.data.entities.Vehiculo
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat

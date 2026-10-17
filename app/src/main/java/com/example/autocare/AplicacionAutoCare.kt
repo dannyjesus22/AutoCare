@@ -2,70 +2,34 @@
 package com.example.autocare
 
 import android.app.Application
-import androidx.room.Room
-
-import com.example.autocare.data.BaseDatosAutoCare
 import com.example.autocare.data.ConfiguracionDataStore
-import com.example.autocare.data.MIGRACION_1_2
-import com.example.autocare.data.MIGRACION_2_3
-import com.example.autocare.data.VehiculoRepository
-import com.example.autocare.data.RegistroKilometrajeRepository
-import com.example.autocare.data.MantenimientoRepository
-import com.example.autocare.data.usuarios.UsuarioRepository
+import com.example.autocare.data.repository.VehiculoRepository
+import com.example.autocare.data.repository.RegistroKilometrajeRepository
+import com.example.autocare.data.repository.MantenimientoRepository
+import com.example.autocare.data.repository.UsuarioRepository
+import dagger.hilt.android.HiltAndroidApp
+import javax.inject.Inject
 
+@HiltAndroidApp
 class AplicacionAutoCare : Application() {
 
-
     // Guarda las preferencias y la sesión del usuario.
-    val configuracionDataStore by lazy {
-        ConfiguracionDataStore(applicationContext)
-    }
+    @Inject
+    lateinit var configuracionDataStore: ConfiguracionDataStore
 
+    // Repositorio de vehículos.
+    @Inject
+    lateinit var vehiculoRepository: VehiculoRepository
 
-    // Crear una sola instancia de Room.
-    val baseDatos by lazy {
-        Room.databaseBuilder(
-            applicationContext,
-            BaseDatosAutoCare::class.java,
-            "autocare_database"
-        )
-            .addMigrations(
-                MIGRACION_1_2,
-                MIGRACION_2_3
-            )
-            .build()
-    }
+    // Repositorio de kilometraje.
+    @Inject
+    lateinit var registroKilometrajeRepository: RegistroKilometrajeRepository
 
-    // Repository de vehículos.
-    val vehiculoRepository by lazy {
-        VehiculoRepository(
-            baseDatos.vehiculoDao()
-        )
-    }
+    // Repositorio de mantenimiento.
+    @Inject
+    lateinit var mantenimientoRepository: MantenimientoRepository
 
-    // Repository de kilometraje.
-    val registroKilometrajeRepository by lazy {
-        RegistroKilometrajeRepository(
-            registroKilometrajeDao = baseDatos.registroKilometrajeDao(),
-            vehiculoDao = baseDatos.vehiculoDao(),
-            baseDatos = baseDatos
-        )
-    }
-
-    // Repository de mantenimiento.
-    val mantenimientoRepository by lazy {
-        MantenimientoRepository(
-            baseDatos.mantenimientoDao()
-        )
-    }
-
-
-
-    val usuarioRepository by lazy {
-        UsuarioRepository(
-            baseDatos.usuarioDao()
-        )
-    }
-
-
+    // Repositorio de usuarios.
+    @Inject
+    lateinit var usuarioRepository: UsuarioRepository
 }

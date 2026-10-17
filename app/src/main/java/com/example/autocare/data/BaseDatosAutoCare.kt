@@ -3,8 +3,14 @@ package com.example.autocare.data
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
-import com.example.autocare.data.usuarios.Usuario
-import com.example.autocare.data.usuarios.UsuarioDao
+import com.example.autocare.data.dao.MantenimientoDao
+import com.example.autocare.data.dao.RegistroKilometrajeDao
+import com.example.autocare.data.dao.VehiculoDao
+import com.example.autocare.data.entities.Mantenimiento
+import com.example.autocare.data.entities.RegistroKilometraje
+import com.example.autocare.data.entities.Vehiculo
+import com.example.autocare.data.entities.Usuario
+import com.example.autocare.data.dao.UsuarioDao
 
 @Database(
     entities = [
