@@ -1,8 +1,8 @@
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt)
 }
 
 android {
@@ -50,17 +50,28 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-
+    implementation("androidx.compose.material:material-icons-extended")
+    implementation("androidx.core:core-splashscreen:1.0.1")
     // Base de datos Room
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
+    // Inyección de dependencias con Hilt
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+    implementation("androidx.hilt:hilt-navigation-compose:1.3.0")
+
     // ViewModel para Jetpack Compose
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
+    // Navegación entre pantallas con Jetpack Compose
+    implementation("androidx.navigation:navigation-compose:2.9.5")
+
+    // DataStore Preferences
+    implementation("androidx.datastore:datastore-preferences:1.2.1")
+
     testImplementation(libs.junit)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
