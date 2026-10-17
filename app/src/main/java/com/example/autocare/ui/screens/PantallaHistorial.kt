@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -227,10 +228,19 @@ fun SeccionHistorialKilometraje(registros: List<RegistroKilometraje>) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             registrosOrdenados.forEachIndexed { index, reg ->
                 val regAnterior = registrosOrdenados.getOrNull(index + 1)
+
+                // Si existe un registro anterior en la lista, calcula la diferencia.
+                // Si no existe (es el primer registro), deduce los km ingresados restando la base de configuración.
                 val recorrido = if (regAnterior != null) {
                     reg.kilometrajeActual - regAnterior.kilometrajeActual
                 } else {
-                    0
+                    val residuo10000 = reg.kilometrajeActual % 10000
+                    if (residuo10000 > 0) {
+                        residuo10000
+                    } else {
+                        val residuo1000 = reg.kilometrajeActual % 1000
+                        if (residuo1000 > 0) residuo1000 else reg.kilometrajeActual
+                    }
                 }
 
                 Card(
@@ -277,6 +287,8 @@ fun SeccionHistorialMantenimiento(
     kilometrajeActualVehiculo: Int,
     onCambiarEstadoMantenimiento: (Mantenimiento, Boolean, Int) -> Unit
 ) {
+    var mantenimientoAReabrir by remember { mutableStateOf<Mantenimiento?>(null) }
+
     if (mantenimientos.isEmpty()) {
         Text(
             text = "No hay registros de mantenimiento para este vehículo.",
@@ -331,14 +343,12 @@ fun SeccionHistorialMantenimiento(
                             color = Color(0xFF0066FF)
                         )
 
-                        // Muestra de manera fija el kilometraje inicial con el que se creó la tarea
                         Text(
                             text = "📍 Registrado inicialmente a los: ${mantenimiento.kilometrajeRealizado} km",
                             fontSize = 13.sp,
                             color = Color.DarkGray
                         )
 
-                        // Si está completado, muestra de forma independiente el kilometraje al momento de marcarlo como realizado
                         if (mantenimiento.completado) {
                             val kmCompletadoMostrar = mantenimiento.kilometrajeCompletado ?: mantenimiento.kilometrajeRealizado
                             Text(
@@ -406,11 +416,7 @@ fun SeccionHistorialMantenimiento(
                         } else {
                             OutlinedButton(
                                 onClick = {
-                                    onCambiarEstadoMantenimiento(
-                                        mantenimiento,
-                                        false,
-                                        mantenimiento.kilometrajeRealizado
-                                    )
+                                    mantenimientoAReabrir = mantenimiento
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(8.dp)
@@ -422,5 +428,39 @@ fun SeccionHistorialMantenimiento(
                 }
             }
         }
+    }
+
+    // Diálogo de confirmación para reabrir mantenimiento
+    mantenimientoAReabrir?.let { mant ->
+        AlertDialog(
+            onDismissRequest = { mantenimientoAReabrir = null },
+            title = {
+                Text("Reabrir mantenimiento")
+            },
+            text = {
+                Text("¿Estás seguro de que deseas reabrir el mantenimiento \"${mant.titulo}\"? Su estado cambiará a PENDIENTE.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onCambiarEstadoMantenimiento(
+                            mant,
+                            false,
+                            mant.kilometrajeRealizado
+                        )
+                        mantenimientoAReabrir = null
+                    }
+                ) {
+                    Text("Sí, reabrir", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { mantenimientoAReabrir = null }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 }
