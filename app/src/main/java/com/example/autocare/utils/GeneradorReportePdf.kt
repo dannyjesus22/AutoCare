@@ -63,7 +63,6 @@ object GeneradorReportePdf {
 
         var y = 40f
 
-        // Helper para paginación
         fun verificarEspacio(incremento: Float) {
             if (y + incremento > pageHeight - 50f) {
                 pdfDocument.finishPage(page)
@@ -105,7 +104,6 @@ object GeneradorReportePdf {
             canvas.drawText("No hay registros de kilometraje guardados.", 40f, y, paintTexto)
             y += 20f
         } else {
-            // Cabeceras de columna actualizadas incluyendo Recorrido
             canvas.drawText("Fecha / Hora", 40f, y, paintTextoBold)
             canvas.drawText("Km Anterior", 180f, y, paintTextoBold)
             canvas.drawText("Nuevo Km", 300f, y, paintTextoBold)
@@ -115,25 +113,21 @@ object GeneradorReportePdf {
             y += 15f
 
             val formatoFecha = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-
-            // Ordenamos cronológicamente para calcular el valor anterior y el recorrido
             val registrosCronologicos = registrosKilometraje.sortedBy { it.id }
 
-            // Se imprimen en orden descendente (más reciente primero)
             registrosCronologicos.sortedByDescending { it.id }.forEach { reg ->
                 verificarEspacio(20f)
                 val fechaStr = formatoFecha.format(Date(reg.fecha))
-
                 val indiceActual = registrosCronologicos.indexOf(reg)
                 val regAnterior = registrosCronologicos.getOrNull(indiceActual - 1)
 
-                val kmAnteriorTexto = if (regAnterior != null) "${regAnterior.kilometrajeActual} km" else "Inicial"
-                val recorridoTexto = if (regAnterior != null) {
-                    val diferencia = reg.kilometrajeActual - regAnterior.kilometrajeActual
-                    if (diferencia > 0) "+$diferencia km" else "$diferencia km"
-                } else {
-                    "-"
-                }
+                // Si existe un registro anterior, toma su valor; de lo contrario usa el kilometraje base inicial
+                val kmAnteriorVal = regAnterior?.kilometrajeActual ?: reg.kilometrajeActual
+                val kmAnteriorTexto = "$kmAnteriorVal km"
+
+                // El recorrido se calcula contra el registro previo (o es 0 para la lectura base inicial de configuración)
+                val recorridoVal = if (regAnterior != null) (reg.kilometrajeActual - regAnterior.kilometrajeActual) else 0
+                val recorridoTexto = if (recorridoVal > 0) "+$recorridoVal km" else "$recorridoVal km"
 
                 canvas.drawText(fechaStr, 40f, y, paintTexto)
                 canvas.drawText(kmAnteriorTexto, 180f, y, paintTexto)
@@ -158,10 +152,10 @@ object GeneradorReportePdf {
             y += 20f
         } else {
             canvas.drawText("Mantenimiento", 40f, y, paintTextoBold)
-            canvas.drawText("Fecha", 200f, y, paintTextoBold)
-            canvas.drawText("Km Realizado", 290f, y, paintTextoBold)
-            canvas.drawText("Estado", 400f, y, paintTextoBold)
-            canvas.drawText("Costo", 490f, y, paintTextoBold)
+            canvas.drawText("Fecha Reg. / Real.", 175f, y, paintTextoBold)
+            canvas.drawText("Km Reg. / Real.", 305f, y, paintTextoBold)
+            canvas.drawText("Estado", 435f, y, paintTextoBold)
+            canvas.drawText("Costo", 500f, y, paintTextoBold)
             y += 10f
             canvas.drawLine(40f, y, pageWidth - 40f, y, paintLinea)
             y += 15f
@@ -169,17 +163,34 @@ object GeneradorReportePdf {
             mantenimientos.forEach { mant ->
                 verificarEspacio(35f)
                 canvas.drawText(mant.titulo, 40f, y, paintTextoBold)
-                canvas.drawText(mant.fecha, 200f, y, paintTexto)
 
-                val kmTexto = if (mant.completado) "${mant.kilometrajeRealizado} km" else "Pendiente"
-                canvas.drawText(kmTexto, 290f, y, paintTexto)
+                // Muestra: Fecha Registro / Fecha Realizado
+                val fechaTexto = if (mant.completado && !mant.fechaCompletada.isNullOrBlank()) {
+                    "${mant.fecha} / ${mant.fechaCompletada}"
+                } else {
+                    mant.fecha
+                }
+                canvas.drawText(fechaTexto, 175f, y, paintTexto)
+
+                // Muestra: Km Registro / Km Realizado
+                val kmTexto = if (mant.completado) {
+                    val kmComp = mant.kilometrajeCompletado ?: mant.kilometrajeRealizado
+                    if (kmComp != mant.kilometrajeRealizado) {
+                        "${mant.kilometrajeRealizado} / $kmComp km"
+                    } else {
+                        "${mant.kilometrajeRealizado} km"
+                    }
+                } else {
+                    "${mant.kilometrajeRealizado} km"
+                }
+                canvas.drawText(kmTexto, 305f, y, paintTexto)
 
                 val estadoTexto = if (mant.completado) "REALIZADO" else "PENDIENTE"
-                canvas.drawText(estadoTexto, 400f, y, paintTextoBold)
-                canvas.drawText("$ ${String.format(Locale.US, "%.2f", mant.costo)}", 490f, y, paintTexto)
+                canvas.drawText(estadoTexto, 435f, y, paintTextoBold)
+                canvas.drawText("$ ${String.format(Locale.US, "%.2f", mant.costo)}", 500f, y, paintTexto)
                 y += 14f
 
-                // Desglose limpio entre Taller y Observación
+                // Desglose de Taller y Observación
                 val partesNotas = mant.notas.split(" - ", limit = 2)
                 val taller = if (partesNotas.size > 1) partesNotas[0] else ""
                 val observacion = if (partesNotas.size > 1) partesNotas[1] else mant.notas

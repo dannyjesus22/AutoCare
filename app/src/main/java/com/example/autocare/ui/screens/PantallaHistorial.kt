@@ -308,7 +308,6 @@ fun SeccionHistorialMantenimiento(
                                 color = Color(0xFF002B66)
                             )
 
-                            // Etiqueta de Estado (PENDIENTE / REALIZADO)
                             Surface(
                                 color = if (mantenimiento.completado) Color(0xFF2E7D32) else Color(0xFFE65100),
                                 shape = RoundedCornerShape(8.dp)
@@ -332,14 +331,23 @@ fun SeccionHistorialMantenimiento(
                             color = Color(0xFF0066FF)
                         )
 
+                        // Muestra de manera fija el kilometraje inicial con el que se creó la tarea
                         Text(
-                            text = if (mantenimiento.completado)
-                                "Realizado a los: ${mantenimiento.kilometrajeRealizado} km"
-                            else
-                                "Registrado inicialmente en: ${mantenimiento.kilometrajeRealizado} km",
+                            text = "📍 Registrado inicialmente a los: ${mantenimiento.kilometrajeRealizado} km",
                             fontSize = 13.sp,
                             color = Color.DarkGray
                         )
+
+                        // Si está completado, muestra de forma independiente el kilometraje al momento de marcarlo como realizado
+                        if (mantenimiento.completado) {
+                            val kmCompletadoMostrar = mantenimiento.kilometrajeCompletado ?: mantenimiento.kilometrajeRealizado
+                            Text(
+                                text = "✓ Realizado a los: $kmCompletadoMostrar km",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF2E7D32)
+                            )
+                        }
 
                         mantenimiento.proximoKilometraje?.let { proxKm ->
                             Text(
@@ -380,7 +388,6 @@ fun SeccionHistorialMantenimiento(
 
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        // Botón para alternar el estado (Realizado / Pendiente)
                         if (!mantenimiento.completado) {
                             Button(
                                 onClick = {

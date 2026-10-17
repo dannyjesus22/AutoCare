@@ -23,11 +23,13 @@ data class Mantenimiento(
     val vehiculoId: Int,
     val titulo: String,
     val tipo: String,
-    val kilometrajeRealizado: Int,
+    val kilometrajeRealizado: Int, // Km con el que se creó el mantenimiento
+    val kilometrajeCompletado: Int? = null, // Km exacto al marcarlo como realizado
     val proximoKilometraje: Int?,
-    val fecha: String,
+    val fecha: String, // Fecha de registro / programación
+    val fechaCompletada: String? = null, // Fecha exacta en que se marcó como realizado
     val proximaFecha: String?,
     val costo: Double,
     val notas: String = "",
-    val completado: Boolean = false // PENDIENTE por defecto
+    val completado: Boolean = false
 )
