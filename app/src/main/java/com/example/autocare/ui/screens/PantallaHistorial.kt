@@ -59,7 +59,7 @@ fun PantallaHistorial(
     vehiculoSeleccionadoId: Int?,
     onSeleccionarVehiculo: (Int) -> Unit,
     estadoHistorial: HistorialUiState,
-    onCambiarEstadoMantenimiento: (Mantenimiento, Boolean) -> Unit = { _, _ -> },
+    onCambiarEstadoMantenimiento: (Mantenimiento, Boolean, Int) -> Unit = { _, _, _ -> },
     onGenerarPdf: () -> Unit = {}
 ) {
     var pestanaSeleccionada by remember { mutableIntStateOf(0) }
@@ -194,6 +194,7 @@ fun PantallaHistorial(
                     }
                     SeccionHistorialMantenimiento(
                         mantenimientos = mantenimientosDelVehiculo,
+                        kilometrajeActualVehiculo = vehiculoSeleccionado?.kilometraje ?: 0,
                         onCambiarEstadoMantenimiento = onCambiarEstadoMantenimiento
                     )
                 }
@@ -273,7 +274,8 @@ fun SeccionHistorialKilometraje(registros: List<RegistroKilometraje>) {
 @Composable
 fun SeccionHistorialMantenimiento(
     mantenimientos: List<Mantenimiento>,
-    onCambiarEstadoMantenimiento: (Mantenimiento, Boolean) -> Unit
+    kilometrajeActualVehiculo: Int,
+    onCambiarEstadoMantenimiento: (Mantenimiento, Boolean, Int) -> Unit
 ) {
     if (mantenimientos.isEmpty()) {
         Text(
@@ -331,7 +333,10 @@ fun SeccionHistorialMantenimiento(
                         )
 
                         Text(
-                            text = "Realizado a los: ${mantenimiento.kilometrajeRealizado} km",
+                            text = if (mantenimiento.completado)
+                                "Realizado a los: ${mantenimiento.kilometrajeRealizado} km"
+                            else
+                                "Registrado inicialmente en: ${mantenimiento.kilometrajeRealizado} km",
                             fontSize = 13.sp,
                             color = Color.DarkGray
                         )
@@ -378,7 +383,13 @@ fun SeccionHistorialMantenimiento(
                         // Botón para alternar el estado (Realizado / Pendiente)
                         if (!mantenimiento.completado) {
                             Button(
-                                onClick = { onCambiarEstadoMantenimiento(mantenimiento, true) },
+                                onClick = {
+                                    onCambiarEstadoMantenimiento(
+                                        mantenimiento,
+                                        true,
+                                        kilometrajeActualVehiculo
+                                    )
+                                },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
                                 shape = RoundedCornerShape(8.dp)
@@ -387,7 +398,13 @@ fun SeccionHistorialMantenimiento(
                             }
                         } else {
                             OutlinedButton(
-                                onClick = { onCambiarEstadoMantenimiento(mantenimiento, false) },
+                                onClick = {
+                                    onCambiarEstadoMantenimiento(
+                                        mantenimiento,
+                                        false,
+                                        mantenimiento.kilometrajeRealizado
+                                    )
+                                },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(8.dp)
                             ) {

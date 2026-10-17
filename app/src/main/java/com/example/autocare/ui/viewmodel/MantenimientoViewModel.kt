@@ -55,11 +55,19 @@ class MantenimientoViewModel @Inject constructor(
 
     fun cambiarEstadoMantenimiento(
         mantenimiento: Mantenimiento,
-        estaCompletado: Boolean
+        estaCompletado: Boolean,
+        kilometrajeActualVehiculo: Int? = null
     ) {
         viewModelScope.launch {
+            val kmRealizadoActualizado = if (estaCompletado && kilometrajeActualVehiculo != null) {
+                kilometrajeActualVehiculo
+            } else {
+                mantenimiento.kilometrajeRealizado
+            }
+
             val mantenimientoActualizado = mantenimiento.copy(
-                completado = estaCompletado
+                completado = estaCompletado,
+                kilometrajeRealizado = kmRealizadoActualizado
             )
 
             repository.actualizarMantenimiento(mantenimientoActualizado)
