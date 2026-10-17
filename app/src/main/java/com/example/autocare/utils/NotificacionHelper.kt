@@ -12,6 +12,9 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import com.example.autocare.data.ConfiguracionDataStore
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -21,8 +24,7 @@ class NotificacionHelper(private val context: Context) {
     companion object {
         const val CHANNEL_ID = "canal_mantenimiento_autocare"
         const val CHANNEL_NAME = "Recordatorios de Mantenimiento"
-        const val CHANNEL_DESC =
-            "Notificaciones sobre próximos mantenimientos de tu vehículo"
+        const val CHANNEL_DESC = "Notificaciones sobre próximos mantenimientos de tu vehículo"
     }
 
     init {
@@ -34,15 +36,13 @@ class NotificacionHelper(private val context: Context) {
             val canal = NotificationChannel(
                 CHANNEL_ID,
                 CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_DEFAULT
+                NotificationManager.IMPORTANCE_HIGH // Alta importancia para que se muestre como banner flotante
             ).apply {
                 description = CHANNEL_DESC
+                enableVibration(true)
             }
 
-            val manager = context.getSystemService(
-                Context.NOTIFICATION_SERVICE
-            ) as NotificationManager
-
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(canal)
         }
     }
@@ -52,6 +52,15 @@ class NotificacionHelper(private val context: Context) {
         mensaje: String,
         notificationId: Int = 1001
     ) {
+        // 1. Verificar si las notificaciones están activadas en DataStore antes de enviar
+        val dataStore = ConfiguracionDataStore(context)
+        val notificacionesActivadas = runBlocking { dataStore.notificacionesActivadas.first() }
+
+        if (!notificacionesActivadas) {
+            return // Si el usuario desactivó las notificaciones en la configuración, no se envía nada.
+        }
+
+        // 2. Verificar permiso en Android 13+
         if (
             Build.VERSION.SDK_INT >= 33 &&
             ContextCompat.checkSelfPermission(
@@ -62,18 +71,23 @@ class NotificacionHelper(private val context: Context) {
             return
         }
 
+        // 3. Crear notificación expandible con BigTextStyle para leer el texto completo
         val notificacion = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_alert)
             .setContentTitle(titulo)
             .setContentText(mensaje)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            // Estilo expandible: permite desplegar la notificación para leer toda la información
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .bigText(mensaje)
+                    .setBigContentTitle(titulo)
+            )
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setAutoCancel(true)
             .build()
 
-        val manager = context.getSystemService(
-            Context.NOTIFICATION_SERVICE
-        ) as NotificationManager
-
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.notify(notificationId, notificacion)
     }
 
@@ -83,10 +97,7 @@ class NotificacionHelper(private val context: Context) {
         mensaje: String
     ): Boolean {
         return try {
-            val formato = SimpleDateFormat(
-                "dd/MM/yyyy",
-                Locale.getDefault()
-            ).apply {
+            val formato = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).apply {
                 isLenient = false
             }
 
@@ -106,53 +117,33 @@ class NotificacionHelper(private val context: Context) {
                 return false
             }
 
-            val intent = Intent(
-                context,
-                NotificacionReceiver::class.java
-            ).apply {
+            val intent = Intent(context, NotificacionReceiver::class.java).apply {
                 putExtra("titulo", titulo)
                 putExtra("mensaje", mensaje)
             }
 
-            val id = (
-                    System.currentTimeMillis() and 0x7FFFFFFF
-                    ).toInt()
+            val id = (System.currentTimeMillis() and 0x7FFFFFFF).toInt()
 
             val pendiente = PendingIntent.getBroadcast(
                 context,
                 id,
                 intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or
-                        PendingIntent.FLAG_IMMUTABLE
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            val alarmas = context.getSystemService(
-                Context.ALARM_SERVICE
-            ) as AlarmManager
+            val alarmas = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 if (
                     Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
                     !alarmas.canScheduleExactAlarms()
                 ) {
-                    alarmas.setAndAllowWhileIdle(
-                        AlarmManager.RTC_WAKEUP,
-                        cuando,
-                        pendiente
-                    )
+                    alarmas.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, cuando, pendiente)
                 } else {
-                    alarmas.setExactAndAllowWhileIdle(
-                        AlarmManager.RTC_WAKEUP,
-                        cuando,
-                        pendiente
-                    )
+                    alarmas.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, cuando, pendiente)
                 }
             } else {
-                alarmas.set(
-                    AlarmManager.RTC_WAKEUP,
-                    cuando,
-                    pendiente
-                )
+                alarmas.set(AlarmManager.RTC_WAKEUP, cuando, pendiente)
             }
 
             true
@@ -165,20 +156,24 @@ class NotificacionHelper(private val context: Context) {
 
 class NotificacionReceiver : BroadcastReceiver() {
 
-    override fun onReceive(
-        context: Context,
-        intent: Intent
-    ) {
-        val titulo = intent.getStringExtra("titulo")
-            ?: "Recordatorio de Mantenimiento"
+    override fun onReceive(context: Context, intent: Intent) {
+        val dataStore = ConfiguracionDataStore(context)
 
-        val mensaje = intent.getStringExtra("mensaje")
-            ?: "Tienes un mantenimiento programado."
+        // Comprueba si los recordatorios o notificaciones generales están activos en DataStore
+        val notificacionesActivadas = runBlocking { dataStore.notificacionesActivadas.first() }
+        val recordatoriosActivados = runBlocking { dataStore.recordatoriosActivados.first() }
+
+        if (!notificacionesActivadas || !recordatoriosActivados) {
+            return // Si están desactivados en la configuración, no ejecuta el disparo
+        }
+
+        val titulo = intent.getStringExtra("titulo") ?: "Recordatorio de Mantenimiento"
+        val mensaje = intent.getStringExtra("mensaje") ?: "Tienes un mantenimiento programado."
 
         NotificacionHelper(context).enviarNotificacionMantenimiento(
-            titulo,
-            mensaje,
-            (System.currentTimeMillis() and 0x7FFFFFFF).toInt()
+            titulo = titulo,
+            mensaje = mensaje,
+            notificationId = (System.currentTimeMillis() and 0x7FFFFFFF).toInt()
         )
     }
 }
