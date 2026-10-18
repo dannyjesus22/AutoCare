@@ -281,10 +281,11 @@ fun NavegacionPrueba() {
                     }
                 },
                 estadoHistorial = estadoHistorial,
-                onCambiarEstadoMantenimiento = { mantenimiento, estaCompletado ->
+                onCambiarEstadoMantenimiento = { mantenimiento, estaCompletado, kilometrajeActual ->
                     mantenimientoViewModel.cambiarEstadoMantenimiento(
                         mantenimiento = mantenimiento,
-                        estaCompletado = estaCompletado
+                        estaCompletado = estaCompletado,
+                        kilometrajeActualVehiculo = kilometrajeActual
                     )
                 },
                 onGenerarPdf = {

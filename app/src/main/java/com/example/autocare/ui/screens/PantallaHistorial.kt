@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -59,7 +60,7 @@ fun PantallaHistorial(
     vehiculoSeleccionadoId: Int?,
     onSeleccionarVehiculo: (Int) -> Unit,
     estadoHistorial: HistorialUiState,
-    onCambiarEstadoMantenimiento: (Mantenimiento, Boolean) -> Unit = { _, _ -> },
+    onCambiarEstadoMantenimiento: (Mantenimiento, Boolean, Int) -> Unit = { _, _, _ -> },
     onGenerarPdf: () -> Unit = {}
 ) {
     var pestanaSeleccionada by remember { mutableIntStateOf(0) }
@@ -194,6 +195,7 @@ fun PantallaHistorial(
                     }
                     SeccionHistorialMantenimiento(
                         mantenimientos = mantenimientosDelVehiculo,
+                        kilometrajeActualVehiculo = vehiculoSeleccionado?.kilometraje ?: 0,
                         onCambiarEstadoMantenimiento = onCambiarEstadoMantenimiento
                     )
                 }
@@ -226,10 +228,17 @@ fun SeccionHistorialKilometraje(registros: List<RegistroKilometraje>) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             registrosOrdenados.forEachIndexed { index, reg ->
                 val regAnterior = registrosOrdenados.getOrNull(index + 1)
+
                 val recorrido = if (regAnterior != null) {
                     reg.kilometrajeActual - regAnterior.kilometrajeActual
                 } else {
-                    0
+                    val residuo10000 = reg.kilometrajeActual % 10000
+                    if (residuo10000 > 0) {
+                        residuo10000
+                    } else {
+                        val residuo1000 = reg.kilometrajeActual % 1000
+                        if (residuo1000 > 0) residuo1000 else reg.kilometrajeActual
+                    }
                 }
 
                 Card(
@@ -273,8 +282,11 @@ fun SeccionHistorialKilometraje(registros: List<RegistroKilometraje>) {
 @Composable
 fun SeccionHistorialMantenimiento(
     mantenimientos: List<Mantenimiento>,
-    onCambiarEstadoMantenimiento: (Mantenimiento, Boolean) -> Unit
+    kilometrajeActualVehiculo: Int,
+    onCambiarEstadoMantenimiento: (Mantenimiento, Boolean, Int) -> Unit
 ) {
+    var mantenimientoAReabrir by remember { mutableStateOf<Mantenimiento?>(null) }
+
     if (mantenimientos.isEmpty()) {
         Text(
             text = "No hay registros de mantenimiento para este vehículo.",
@@ -306,7 +318,6 @@ fun SeccionHistorialMantenimiento(
                                 color = Color(0xFF002B66)
                             )
 
-                            // Etiqueta de Estado (PENDIENTE / REALIZADO)
                             Surface(
                                 color = if (mantenimiento.completado) Color(0xFF2E7D32) else Color(0xFFE65100),
                                 shape = RoundedCornerShape(8.dp)
@@ -323,22 +334,57 @@ fun SeccionHistorialMantenimiento(
 
                         Spacer(modifier = Modifier.height(6.dp))
 
-                        Text(
-                            text = "📅 Fecha: ${mantenimiento.fecha}",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF0066FF)
-                        )
+                        // ENCABEZADO DE FECHA UNIFICADO
+                        if (mantenimiento.proximoKilometraje != null) {
+                            Text(
+                                text = "📅 Fecha Aproximada: ${mantenimiento.fecha}",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF0066FF)
+                            )
+                        } else if (!mantenimiento.proximaFecha.isNullOrBlank()) {
+                            Text(
+                                text = "📅 Fecha Programada: ${mantenimiento.proximaFecha}",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF0066FF)
+                            )
+                        } else {
+                            Text(
+                                text = "📅 Fecha: ${mantenimiento.fecha}",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF0066FF)
+                            )
+                        }
 
                         Text(
-                            text = "Realizado a los: ${mantenimiento.kilometrajeRealizado} km",
+                            text = "📍 Registrado inicialmente a los: ${mantenimiento.kilometrajeRealizado} km",
                             fontSize = 13.sp,
                             color = Color.DarkGray
                         )
 
-                        mantenimiento.proximoKilometraje?.let { proxKm ->
+                        if (mantenimiento.completado) {
+                            val kmCompletadoMostrar = mantenimiento.kilometrajeCompletado ?: mantenimiento.kilometrajeRealizado
                             Text(
-                                text = "🔔 Notificar a los: $proxKm km",
+                                text = "✓ Realizado a los: $kmCompletadoMostrar km",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF2E7D32)
+                            )
+                        }
+
+                        // INDICADOR DE RECORDATORIO
+                        if (mantenimiento.proximoKilometraje != null) {
+                            Text(
+                                text = "🔔 Recordatorio por Km: A los ${mantenimiento.proximoKilometraje} km",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFFD84315)
+                            )
+                        } else if (!mantenimiento.proximaFecha.isNullOrBlank()) {
+                            Text(
+                                text = "🔔 Recordatorio por Fecha activado",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,
                                 color = Color(0xFFD84315)
@@ -375,10 +421,15 @@ fun SeccionHistorialMantenimiento(
 
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        // Botón para alternar el estado (Realizado / Pendiente)
                         if (!mantenimiento.completado) {
                             Button(
-                                onClick = { onCambiarEstadoMantenimiento(mantenimiento, true) },
+                                onClick = {
+                                    onCambiarEstadoMantenimiento(
+                                        mantenimiento,
+                                        true,
+                                        kilometrajeActualVehiculo
+                                    )
+                                },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
                                 shape = RoundedCornerShape(8.dp)
@@ -387,7 +438,9 @@ fun SeccionHistorialMantenimiento(
                             }
                         } else {
                             OutlinedButton(
-                                onClick = { onCambiarEstadoMantenimiento(mantenimiento, false) },
+                                onClick = {
+                                    mantenimientoAReabrir = mantenimiento
+                                },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(8.dp)
                             ) {
@@ -398,5 +451,39 @@ fun SeccionHistorialMantenimiento(
                 }
             }
         }
+    }
+
+    // Diálogo de confirmación para reabrir mantenimiento
+    mantenimientoAReabrir?.let { mant ->
+        AlertDialog(
+            onDismissRequest = { mantenimientoAReabrir = null },
+            title = {
+                Text("Reabrir mantenimiento")
+            },
+            text = {
+                Text("¿Estás seguro de que deseas reabrir el mantenimiento \"${mant.titulo}\"? Su estado cambiará a PENDIENTE.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onCambiarEstadoMantenimiento(
+                            mant,
+                            false,
+                            mant.kilometrajeRealizado
+                        )
+                        mantenimientoAReabrir = null
+                    }
+                ) {
+                    Text("Sí, reabrir", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { mantenimientoAReabrir = null }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 }

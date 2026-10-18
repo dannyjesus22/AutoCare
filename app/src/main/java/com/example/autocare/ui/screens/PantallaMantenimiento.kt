@@ -2,6 +2,7 @@ package com.example.autocare.ui.screens
 
 import android.Manifest
 import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import android.content.pm.PackageManager
 import android.os.Build
 import android.widget.Toast
@@ -78,6 +79,10 @@ fun PantallaMantenimiento(
     var tipoRecordatorio by remember { mutableStateOf("km") }
     var cadaKmText by remember { mutableStateOf("") }
 
+    // Selección de hora y minuto para la notificación por fecha (Predeterminado: 09:00 AM)
+    var horaNotificacion by remember { mutableIntStateOf(9) }
+    var minutoNotificacion by remember { mutableIntStateOf(0) }
+
     var menuExpandido by remember { mutableStateOf(false) }
 
     val solicitarPermiso = rememberLauncherForActivityResult(
@@ -115,6 +120,17 @@ fun PantallaMantenimiento(
         calendarioRealizado.get(Calendar.YEAR),
         calendarioRealizado.get(Calendar.MONTH),
         calendarioRealizado.get(Calendar.DAY_OF_MONTH)
+    )
+
+    val timePickerNotificacion = TimePickerDialog(
+        context,
+        { _, hora, minuto ->
+            horaNotificacion = hora
+            minutoNotificacion = minuto
+        },
+        horaNotificacion,
+        minutoNotificacion,
+        true // Formato de 24 horas
     )
 
     val cadaKmNum = cadaKmText.toIntOrNull() ?: 0
@@ -439,17 +455,45 @@ fun PantallaMantenimiento(
                                 ) {
                                     Column(modifier = Modifier.padding(14.dp)) {
                                         Text(
-                                            text = "📅 Se notificará en la fecha registrada arriba:",
+                                            text = "📅 Se notificará en la fecha y hora seleccionadas:",
                                             fontSize = 12.sp,
                                             color = azulOscuro
                                         )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = fechaMantenimiento,
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = azulOscuro
-                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column {
+                                                Text(
+                                                    text = "Fecha: $fechaMantenimiento",
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = azulOscuro
+                                                )
+                                                val horaFormateada = String.format(
+                                                    Locale.getDefault(),
+                                                    "%02d:%02d hrs",
+                                                    horaNotificacion,
+                                                    minutoNotificacion
+                                                )
+                                                Text(
+                                                    text = "Hora: $horaFormateada",
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = azulPrincipal
+                                                )
+                                            }
+
+                                            OutlinedButton(
+                                                onClick = { timePickerNotificacion.show() },
+                                                shape = RoundedCornerShape(8.dp)
+                                            ) {
+                                                Text("🕒 Cambiar hora", fontSize = 12.sp)
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -518,6 +562,13 @@ fun PantallaMantenimiento(
                             return@Button
                         }
 
+                        // Formatear notas
+                        val notasFinales = if (tallerText.isNotBlank()) {
+                            "${tallerText.trim()} - ${observacionesText.trim()}"
+                        } else {
+                            observacionesText.trim()
+                        }
+
                         // Guardar en Room con estado completado = false (PENDIENTE)
                         viewModel.guardarMantenimiento(
                             vehiculoId = vehiculo.id,
@@ -528,11 +579,7 @@ fun PantallaMantenimiento(
                             fecha = fechaMantenimiento,
                             proximaFecha = proximaFechaFinal,
                             costo = costoDouble,
-                            notas = if (tallerText.isNotBlank()) {
-                                "${tallerText.trim()} - ${observacionesText.trim()}"
-                            } else {
-                                observacionesText.trim()
-                            },
+                            notas = notasFinales,
                             completado = false
                         )
 
@@ -541,7 +588,9 @@ fun PantallaMantenimiento(
                             notificacionHelper.programarNotificacionPorFecha(
                                 fechaStr = fechaMantenimiento,
                                 titulo = "Recordatorio de Mantenimiento",
-                                mensaje = "Hoy corresponde realizar: $tipoMantenimiento"
+                                mensaje = "Hoy corresponde realizar: $tipoMantenimiento",
+                                hora = horaNotificacion,
+                                minuto = minutoNotificacion
                             )
                         } else if (recordatorioActivo) {
                             verificarPermisoNotificaciones()

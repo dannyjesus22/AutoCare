@@ -18,6 +18,13 @@ import java.util.Locale
 
 object GeneradorReportePdf {
 
+    private data class FilaKilometraje(
+        val fecha: Long,
+        val kmAnterior: Int,
+        val nuevoKm: Int,
+        val recorrido: Int
+    )
+
     fun generarYMostrarReporte(
         context: Context,
         vehiculo: Vehiculo,
@@ -41,19 +48,19 @@ object GeneradorReportePdf {
 
         val paintSubtitulo = Paint().apply {
             color = Color.parseColor("#1976D2")
-            textSize = 15f
+            textSize = 14f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
 
         val paintTextoBold = Paint().apply {
             color = Color.BLACK
-            textSize = 12f
+            textSize = 10f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
 
         val paintTexto = Paint().apply {
             color = Color.DKGRAY
-            textSize = 11f
+            textSize = 10f
         }
 
         val paintLinea = Paint().apply {
@@ -63,7 +70,6 @@ object GeneradorReportePdf {
 
         var y = 40f
 
-        // Helper para paginación
         fun verificarEspacio(incremento: Float) {
             if (y + incremento > pageHeight - 50f) {
                 pdfDocument.finishPage(page)
@@ -82,84 +88,155 @@ object GeneradorReportePdf {
         canvas.drawText("Fecha de emisión: $fechaEmision", 40f, y, paintTexto)
         y += 15f
         canvas.drawLine(40f, y, pageWidth - 40f, y, paintLinea)
-        y += 25f
+        y += 20f
 
         // 2. Información del Vehículo
         canvas.drawText("Información del Vehículo", 40f, y, paintSubtitulo)
-        y += 20f
+        y += 18f
         canvas.drawText("Marca / Modelo: ${vehiculo.marca} ${vehiculo.modelo}", 40f, y, paintTextoBold)
         canvas.drawText("Año: ${vehiculo.anio}", 340f, y, paintTexto)
         y += 15f
         canvas.drawText("Tipo: ${vehiculo.tipoVehiculo}", 40f, y, paintTexto)
         canvas.drawText("Kilometraje Actual: ${vehiculo.kilometraje} km", 340f, y, paintTextoBold)
-        y += 20f
+        y += 18f
         canvas.drawLine(40f, y, pageWidth - 40f, y, paintLinea)
-        y += 25f
+        y += 20f
 
         // 3. Tabla de Lecturas de Kilometraje
         verificarEspacio(40f)
         canvas.drawText("Historial de Lecturas de Kilometraje", 40f, y, paintSubtitulo)
-        y += 20f
+        y += 18f
 
         if (registrosKilometraje.isEmpty()) {
             canvas.drawText("No hay registros de kilometraje guardados.", 40f, y, paintTexto)
             y += 20f
         } else {
-            canvas.drawText("Fecha / Hora", 50f, y, paintTextoBold)
-            canvas.drawText("Kilometraje Registrado", 280f, y, paintTextoBold)
+            canvas.drawText("Fecha / Hora", 40f, y, paintTextoBold)
+            canvas.drawText("Km Anterior", 180f, y, paintTextoBold)
+            canvas.drawText("Nuevo Km", 300f, y, paintTextoBold)
+            canvas.drawText("Recorrido", 430f, y, paintTextoBold)
             y += 10f
             canvas.drawLine(40f, y, pageWidth - 40f, y, paintLinea)
-            y += 18f
+            y += 15f
 
             val formatoFecha = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
 
-            registrosKilometraje.sortedByDescending { it.id }.forEach { reg ->
+            // Orden cronológico ascendente (id menor primero)
+            val registrosCronologicos = registrosKilometraje.sortedBy { it.id }
+            val filasAMostrar = mutableListOf<FilaKilometraje>()
+
+            for (i in registrosCronologicos.indices) {
+                val regActual = registrosCronologicos[i]
+                val nuevo = regActual.kilometrajeActual
+
+                if (i > 0) {
+                    val regAnterior = registrosCronologicos[i - 1]
+                    val kmAnt = regAnterior.kilometrajeActual
+                    val rec = nuevo - kmAnt
+                    filasAMostrar.add(FilaKilometraje(regActual.fecha, kmAnt, nuevo, rec))
+                } else {
+                    // Primer registro en la base de datos (i == 0)
+                    val residuo = nuevo % 10000
+                    val kmAnt = if (residuo in 1..9999) {
+                        nuevo - residuo
+                    } else if (registrosCronologicos.size > 1) {
+                        val pasoSiguiente = registrosCronologicos[1].kilometrajeActual - nuevo
+                        if (pasoSiguiente in 1..<nuevo) nuevo - pasoSiguiente else nuevo
+                    } else {
+                        nuevo
+                    }
+
+                    val rec = nuevo - kmAnt
+                    filasAMostrar.add(FilaKilometraje(regActual.fecha, kmAnt, nuevo, rec))
+                }
+            }
+
+            // Se muestran en el PDF ordenadas de forma descendente (la más reciente arriba)
+            filasAMostrar.sortedByDescending { it.fecha }.forEach { fila ->
                 verificarEspacio(20f)
-                val fechaStr = formatoFecha.format(Date(reg.fecha))
-                canvas.drawText(fechaStr, 50f, y, paintTexto)
-                canvas.drawText("${reg.kilometrajeActual} km", 280f, y, paintTexto)
-                y += 18f
+                val fechaStr = formatoFecha.format(Date(fila.fecha))
+                val kmAnteriorTexto = "${fila.kmAnterior} km"
+                val recorridoTexto = if (fila.recorrido > 0) "+${fila.recorrido} km" else "${fila.recorrido} km"
+
+                canvas.drawText(fechaStr, 40f, y, paintTexto)
+                canvas.drawText(kmAnteriorTexto, 180f, y, paintTexto)
+                canvas.drawText("${fila.nuevoKm} km", 300f, y, paintTextoBold)
+                canvas.drawText(recorridoTexto, 430f, y, paintTextoBold)
+                y += 16f
             }
         }
 
-        y += 15f
+        y += 10f
         verificarEspacio(20f)
         canvas.drawLine(40f, y, pageWidth - 40f, y, paintLinea)
-        y += 25f
+        y += 20f
 
         // 4. Tabla de Mantenimientos
         verificarEspacio(40f)
         canvas.drawText("Historial de Mantenimientos", 40f, y, paintSubtitulo)
-        y += 20f
+        y += 18f
 
         if (mantenimientos.isEmpty()) {
             canvas.drawText("No hay mantenimientos registrados.", 40f, y, paintTexto)
             y += 20f
         } else {
-            canvas.drawText("Título", 50f, y, paintTextoBold)
-            canvas.drawText("Fecha", 200f, y, paintTextoBold)
-            canvas.drawText("Km Realizado", 300f, y, paintTextoBold)
-            canvas.drawText("Estado", 410f, y, paintTextoBold)
-            canvas.drawText("Costo", 490f, y, paintTextoBold)
+            canvas.drawText("Mantenimiento", 40f, y, paintTextoBold)
+            canvas.drawText("Fecha Reg. / Real.", 175f, y, paintTextoBold)
+            canvas.drawText("Km Reg. / Real.", 305f, y, paintTextoBold)
+            canvas.drawText("Estado", 435f, y, paintTextoBold)
+            canvas.drawText("Costo", 500f, y, paintTextoBold)
             y += 10f
             canvas.drawLine(40f, y, pageWidth - 40f, y, paintLinea)
-            y += 18f
+            y += 15f
 
             mantenimientos.forEach { mant ->
-                verificarEspacio(25f)
-                canvas.drawText(mant.titulo, 50f, y, paintTextoBold)
-                canvas.drawText(mant.fecha, 200f, y, paintTexto)
-                canvas.drawText("${mant.kilometrajeRealizado} km", 300f, y, paintTexto)
-                canvas.drawText(if (mant.completado) "REALIZADO" else "PENDIENTE", 410f, y, paintTexto)
-                canvas.drawText("$ ${String.format(Locale.US, "%.2f", mant.costo)}", 490f, y, paintTexto)
-                y += 15f
+                verificarEspacio(35f)
+                canvas.drawText(mant.titulo, 40f, y, paintTextoBold)
 
-                if (mant.notas.isNotBlank()) {
-                    verificarEspacio(15f)
-                    canvas.drawText("Notas: ${mant.notas}", 60f, y, paintTexto)
-                    y += 15f
+                // Muestra: Fecha Registro / Fecha Realizado
+                val fechaTexto = if (mant.completado && !mant.fechaCompletada.isNullOrBlank()) {
+                    "${mant.fecha} / ${mant.fechaCompletada}"
+                } else {
+                    mant.fecha
                 }
-                y += 5f
+                canvas.drawText(fechaTexto, 175f, y, paintTexto)
+
+                // Muestra: Km Registro / Km Realizado
+                val kmTexto = if (mant.completado) {
+                    val kmComp = mant.kilometrajeCompletado ?: mant.kilometrajeRealizado
+                    if (kmComp != mant.kilometrajeRealizado) {
+                        "${mant.kilometrajeRealizado} / $kmComp km"
+                    } else {
+                        "${mant.kilometrajeRealizado} km"
+                    }
+                } else {
+                    "${mant.kilometrajeRealizado} km"
+                }
+                canvas.drawText(kmTexto, 305f, y, paintTexto)
+
+                val estadoTexto = if (mant.completado) "REALIZADO" else "PENDIENTE"
+                canvas.drawText(estadoTexto, 435f, y, paintTextoBold)
+                canvas.drawText("$ ${String.format(Locale.US, "%.2f", mant.costo)}", 500f, y, paintTexto)
+                y += 14f
+
+                // Desglose de Taller y Observación
+                val partesNotas = mant.notas.split(" - ", limit = 2)
+                val taller = if (partesNotas.size > 1) partesNotas[0] else ""
+                val observacion = if (partesNotas.size > 1) partesNotas[1] else mant.notas
+
+                if (taller.isNotBlank()) {
+                    verificarEspacio(14f)
+                    canvas.drawText("  • Taller: $taller", 50f, y, paintTexto)
+                    y += 14f
+                }
+
+                if (observacion.isNotBlank()) {
+                    verificarEspacio(14f)
+                    canvas.drawText("  • Observación: $observacion", 50f, y, paintTexto)
+                    y += 14f
+                }
+
+                y += 6f
             }
         }
 
