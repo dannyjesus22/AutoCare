@@ -10,6 +10,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -36,13 +39,16 @@ class MantenimientoViewModel @Inject constructor(
         completado: Boolean = false
     ) {
         viewModelScope.launch {
+            val fechaHoy = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
             val nuevoMantenimiento = Mantenimiento(
                 vehiculoId = vehiculoId,
                 titulo = titulo,
                 tipo = tipo,
                 kilometrajeRealizado = kilometrajeRealizado,
+                kilometrajeCompletado = if (completado) kilometrajeRealizado else null,
                 proximoKilometraje = proximoKilometraje,
                 fecha = fecha,
+                fechaCompletada = if (completado) fechaHoy else null,
                 proximaFecha = proximaFecha,
                 costo = costo,
                 notas = notas,
@@ -55,11 +61,28 @@ class MantenimientoViewModel @Inject constructor(
 
     fun cambiarEstadoMantenimiento(
         mantenimiento: Mantenimiento,
-        estaCompletado: Boolean
+        estaCompletado: Boolean,
+        kilometrajeActualVehiculo: Int? = null
     ) {
         viewModelScope.launch {
+            val fechaHoy = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
+
+            val kmCompletadoActualizado = if (estaCompletado) {
+                kilometrajeActualVehiculo ?: mantenimiento.kilometrajeCompletado ?: mantenimiento.kilometrajeRealizado
+            } else {
+                null
+            }
+
+            val fechaCompletadaActualizada = if (estaCompletado) {
+                mantenimiento.fechaCompletada ?: fechaHoy
+            } else {
+                null // Al reabrir, se limpia la fecha de realización
+            }
+
             val mantenimientoActualizado = mantenimiento.copy(
-                completado = estaCompletado
+                completado = estaCompletado,
+                kilometrajeCompletado = kmCompletadoActualizado,
+                fechaCompletada = fechaCompletadaActualizada
             )
 
             repository.actualizarMantenimiento(mantenimientoActualizado)
@@ -77,21 +100,14 @@ class MantenimientoViewModel @Inject constructor(
                 .firstOrNull()
 
             mantenimientos?.forEach { mantenimiento ->
-
-                // Notificar solamente si el mantenimiento está pendiente.
                 if (!mantenimiento.completado) {
-
                     val kmDisparoAlerta = mantenimiento.proximoKilometraje
-
-                    if (
-                        kmDisparoAlerta != null &&
-                        nuevoKilometraje >= kmDisparoAlerta
-                    ) {
+                    if (kmDisparoAlerta != null && nuevoKilometraje >= kmDisparoAlerta) {
                         val notificacionHelper = NotificacionHelper(context)
-
                         notificacionHelper.enviarNotificacionMantenimiento(
                             titulo = "Recordatorio de Mantenimiento Pendiente",
-                            mensaje = "Tu vehículo alcanzó los $nuevoKilometraje km. Tienes pendiente: ${mantenimiento.titulo}"
+                            mensaje = "Tu vehículo alcanzó los $nuevoKilometraje km. Tienes pendiente: ${mantenimiento.titulo}",
+                            notificationId = mantenimiento.id
                         )
                     }
                 }
